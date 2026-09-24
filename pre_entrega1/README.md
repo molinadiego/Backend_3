@@ -1,6 +1,6 @@
 # ShipNow API V1
 
-Backend de ShipNow desarrollado con Node.js, Express y MongoDB.
+Backend de ShipNow desarrollado con Node.js, Express, MongoDB y Mongoose.
 
 Esta versión corresponde a la **Pre-entrega 1**, cuyo objetivo es refactorizar la aplicación aplicando una arquitectura por capas, separación de responsabilidades, configuración centralizada, manejo de errores e inyección de dependencias.
 
@@ -11,10 +11,11 @@ Esta versión corresponde a la **Pre-entrega 1**, cuyo objetivo es refactorizar 
 - MongoDB
 - Mongoose
 - dotenv
+- ECMAScript Modules (ESM)
 
 ## Arquitectura
 
-El proyecto utiliza una arquitectura basada en capas:
+La aplicación utiliza una arquitectura por capas con el siguiente flujo:
 
 ```text
 Route
@@ -30,49 +31,43 @@ Model
 MongoDB
 ```
 
-Cada capa tiene una responsabilidad específica.
-
 ### Routes
 
-Define los endpoints de la API y delega las solicitudes a los controllers.
+Definen los endpoints de la API y delegan las operaciones a los controllers.
 
-Los routers reciben sus controllers mediante inyección de dependencias.
+Los routers reciben los controllers mediante inyección de dependencias.
 
 ### Controllers
 
-Gestionan las solicitudes HTTP y delegan la lógica de negocio a los services correspondientes.
+Gestionan las solicitudes HTTP y las respuestas.
+
+No contienen lógica de acceso a la base de datos ni utilizan Mongoose directamente.
 
 ### Services
 
-Contienen la lógica de negocio de la aplicación.
-
-Los services utilizan repositories para acceder a los datos.
+Contienen la lógica de negocio de la aplicación y utilizan los repositories para acceder a los datos.
 
 ### Repositories
 
-Abstraen el acceso a la base de datos y se encargan de trabajar con los modelos de Mongoose.
+Abstraen el acceso a MongoDB y trabajan con los modelos de Mongoose.
 
 ### Models
 
-Definen los esquemas y modelos utilizados para almacenar información en MongoDB.
+Definen los schemas y modelos utilizados para persistir información en MongoDB.
 
 ### Config
 
 Centraliza la configuración de la aplicación y la conexión con MongoDB.
 
-Las variables de entorno se gestionan desde esta capa.
+Las variables de entorno son gestionadas desde esta capa.
 
 ### Constants
 
-Contiene las constantes utilizadas por la aplicación para evitar valores repetidos directamente en el código.
+Centraliza los valores constantes utilizados por la aplicación, como roles de usuarios y estados de órdenes.
 
 ### Middlewares
 
-Contiene el middleware encargado del manejo centralizado de errores.
-
-### Utils
-
-Carpeta destinada a utilidades auxiliares de la aplicación.
+Contiene el middleware centralizado para el manejo de errores.
 
 ## Estructura del proyecto
 
@@ -95,26 +90,26 @@ Carpeta destinada a utilidades auxiliares de la aplicación.
     │   └── constants.js
     │
     ├── controllers
-    │   ├── products.controller.js
+    │   ├── orders.controller.js
     │   └── users.controller.js
     │
     ├── middlewares
     │   └── error.middleware.js
     │
     ├── models
-    │   ├── product.model.js
+    │   ├── order.model.js
     │   └── user.model.js
     │
     ├── repositories
-    │   ├── products.repository.js
+    │   ├── orders.repository.js
     │   └── users.repository.js
     │
     ├── routes
-    │   ├── products.router.js
+    │   ├── orders.router.js
     │   └── users.router.js
     │
     ├── services
-    │   ├── products.service.js
+    │   ├── orders.service.js
     │   └── users.service.js
     │
     └── utils
@@ -122,60 +117,50 @@ Carpeta destinada a utilidades auxiliares de la aplicación.
 
 ## Inyección de dependencias
 
-La aplicación utiliza inyección de dependencias para conectar las diferentes capas.
+Las dependencias de cada capa se construyen en `app.js`.
 
-Las dependencias se construyen en `app.js` y se inyectan en la siguiente secuencia:
+Ejemplo:
 
-```text
-Repository
-    ↓
-Service
-    ↓
-Controller
-    ↓
-Router
-```
+```js
+const userRepository = new UserRepository(UserModel);
+const orderRepository = new OrderRepository(OrderModel);
 
-Por ejemplo, para Users:
-
-```javascript
-const userRepository = new UserRepository();
 const userService = new UserService(userRepository);
+const orderService = new OrderService(orderRepository);
+
 const userController = new UserController(userService);
+const orderController = new OrderController(orderService);
 
 app.use("/api/users", createUsersRouter(userController));
+app.use("/api/orders", createOrdersRouter(orderController));
 ```
 
-De esta manera, cada componente recibe la dependencia que necesita en lugar de crearla internamente.
-
-Esto permite mantener las capas desacopladas y facilita el mantenimiento y las pruebas de la aplicación.
+De esta manera, cada capa recibe la dependencia que necesita sin crear directamente sus dependencias internas.
 
 ## Configuración
 
-La aplicación utiliza variables de entorno para configurar el servidor y la conexión con MongoDB.
-
-Crear un archivo `.env` a partir del archivo `.env.example`:
+Crear el archivo `.env` a partir del archivo `.env.example`:
 
 ```bash
 cp .env.example .env
 ```
 
-Luego completar las variables requeridas.
+Completar las variables de entorno requeridas.
 
-El archivo `.env` no debe subirse al repositorio, ya que puede contener información sensible.
+El archivo `.env` no debe ser subido al repositorio.
 
 ## Instalación
 
 Clonar el repositorio:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/molinadiego/Backend_3.git
 ```
 
-Ingresar al directorio del proyecto:
+Ingresar al proyecto:
 
 ```bash
-cd <project-folder>
+cd Backend_3/pre_entrega1
 ```
 
 Instalar las dependencias:
@@ -184,13 +169,11 @@ Instalar las dependencias:
 npm install
 ```
 
-Crear el archivo de variables de entorno:
+Crear el archivo `.env`:
 
 ```bash
 cp .env.example .env
 ```
-
-Configurar las variables correspondientes.
 
 ## Ejecución
 
@@ -200,41 +183,62 @@ Para iniciar el servidor en modo desarrollo:
 npm run dev
 ```
 
-La aplicación se ejecutará utilizando el puerto definido en las variables de entorno.
+La aplicación utiliza el puerto configurado en las variables de entorno.
 
-Con la configuración actual:
+## Endpoints
+
+### Usuarios
 
 ```text
-http://localhost:8080
+GET    /api/users
+GET    /api/users/:id
+POST   /api/users
+PUT    /api/users/:id
+DELETE /api/users/:id
 ```
 
-Al iniciar correctamente, la aplicación establece la conexión con MongoDB y luego inicia el servidor HTTP.
+### Órdenes
 
-## API
+```text
+GET    /api/orders
+GET    /api/orders/:id
+POST   /api/orders
+PUT    /api/orders/:id
+DELETE /api/orders/:id
+```
 
-### Users
+## Órdenes
 
-| Método | Endpoint         | Descripción                |
-| ------ | ---------------- | -------------------------- |
-| GET    | `/api/users`     | Obtener todos los usuarios |
-| GET    | `/api/users/:id` | Obtener un usuario por ID  |
-| POST   | `/api/users`     | Crear un usuario           |
-| PUT    | `/api/users/:id` | Actualizar un usuario      |
-| DELETE | `/api/users/:id` | Eliminar un usuario        |
+Las órdenes contienen una referencia al usuario que las creó mediante `userId`.
 
-### Products
+El modelo de orden contempla:
 
-| Método | Endpoint            | Descripción                 |
-| ------ | ------------------- | --------------------------- |
-| GET    | `/api/products`     | Obtener todos los productos |
-| GET    | `/api/products/:id` | Obtener un producto por ID  |
-| POST   | `/api/products`     | Crear un producto           |
-| PUT    | `/api/products/:id` | Actualizar un producto      |
-| DELETE | `/api/products/:id` | Eliminar un producto        |
+```text
+userId
+deliveryAddress
+total
+status
+isActive
+createdAt
+updatedAt
+```
+
+Los estados disponibles para una orden son:
+
+```text
+created
+assigned
+picked_up
+in_transit
+delivered
+cancelled
+```
+
+Las órdenes utilizan `isActive` para permitir la eliminación lógica mediante soft delete.
 
 ## Formato de respuesta
 
-Las respuestas exitosas de la API utilizan una estructura uniforme:
+Las respuestas exitosas utilizan el siguiente formato:
 
 ```json
 {
@@ -245,26 +249,23 @@ Las respuestas exitosas de la API utilizan una estructura uniforme:
 
 ## Manejo de errores
 
-La aplicación cuenta con un middleware centralizado para el manejo de errores:
+La aplicación utiliza un middleware centralizado ubicado en:
 
 ```text
 src/middlewares/error.middleware.js
 ```
 
-El middleware recibe los errores propagados durante el procesamiento de las solicitudes y genera la respuesta correspondiente.
+Los errores generados durante la ejecución son propagados desde las distintas capas hasta el middleware encargado de generar la respuesta HTTP correspondiente.
 
 ## Objetivos de la Pre-entrega 1
 
-Esta entrega busca aplicar los siguientes conceptos:
-
-- Arquitectura por capas.
-- Separación de responsabilidades.
-- Patrón Repository.
-- Inyección de dependencias.
-- Configuración centralizada.
-- Uso de variables de entorno.
-- Constantes centralizadas.
-- Manejo centralizado de errores.
-- Separación entre routes, controllers, services y repositories.
-- Abstracción del acceso a MongoDB.
-- Preparación de la aplicación para facilitar su mantenimiento y futuras extensiones.
+- Implementar una arquitectura por capas.
+- Separar responsabilidades entre Routes, Controllers, Services y Repositories.
+- Aplicar el patrón Repository.
+- Implementar inyección de dependencias.
+- Centralizar la configuración de la aplicación.
+- Gestionar las variables de entorno mediante configuración centralizada.
+- Centralizar constantes de la aplicación.
+- Implementar manejo de errores mediante middleware.
+- Abstraer el acceso a MongoDB.
+- Mejorar la organización, mantenibilidad y escalabilidad del proyecto.
