@@ -1,4 +1,3 @@
-```js
 export class UserRepository {
     constructor(userModel) {
         this.userModel = userModel;
@@ -19,9 +18,7 @@ export class UserRepository {
     }
 
     async findByEmail(email) {
-        return this.userModel
-            .findOne({ email, isActive: true })
-            .lean();
+        return this.userModel.findOne({ email, isActive: true }).lean();
     }
 
     async create(userData) {
@@ -30,14 +27,10 @@ export class UserRepository {
 
     async update(id, updateData) {
         return this.userModel
-            .findOneAndUpdate(
-                { _id: id, isActive: true },
-                updateData,
-                {
-                    new: true,
-                    runValidators: true,
-                },
-            )
+            .findOneAndUpdate({ _id: id, isActive: true }, updateData, {
+                new: true,
+                runValidators: true,
+            })
             .select("-password")
             .lean();
     }
@@ -52,4 +45,3 @@ export class UserRepository {
             .lean();
     }
 }
-```;
