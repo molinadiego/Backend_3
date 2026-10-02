@@ -17,13 +17,6 @@ export class ProductController {
             const { id } = req.params;
             const product = await this.productService.getProductById(id);
 
-            if (!product) {
-                return res.status(404).json({
-                    status: "error",
-                    message: "Producto no encontrado",
-                });
-            }
-
             return res.status(200).json({ status: "success", data: product });
         } catch (error) {
             next(error);
@@ -33,13 +26,6 @@ export class ProductController {
     createProduct = async (req, res, next) => {
         try {
             const { name, price, stock } = req.body;
-
-            if (!name || price === undefined) {
-                return res.status(400).json({
-                    status: "error",
-                    message: "Nombre y precio son requeridos",
-                });
-            }
 
             const newProduct = await this.productService.createProduct({
                 name,
@@ -58,12 +44,6 @@ export class ProductController {
         try {
             const { id } = req.params;
             const { stock } = req.body;
-
-            if (stock === undefined || Number(stock) < 0) {
-                return res
-                    .status(400)
-                    .json({ status: "error", message: "Stock inválido" });
-            }
 
             const updatedProduct = await this.productService.updateStock(
                 id,

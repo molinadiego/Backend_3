@@ -1,4 +1,6 @@
 import { USER_ROLES } from "../constants/index.js";
+import { AppError } from "../errors/app.error.js";
+import { ERRORS_CODES } from "../errors/errors.codes.js";
 
 export class UserService {
     constructor(userRepository) {
@@ -13,7 +15,7 @@ export class UserService {
         const user = await this.userRepository.findById(id);
 
         if (!user) {
-            throw new Error("Usuario no encontrado");
+            throw new AppError(ERRORS_CODES.USER_NOT_FOUND);
         }
 
         return user;
@@ -23,17 +25,17 @@ export class UserService {
         const { name, email, password, role } = data;
 
         if (!name || !email || !password) {
-            throw new Error("Nombre, email y contraseña son obligatorios");
+            throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
         }
 
         const existingUser = await this.userRepository.findByEmail(email);
 
         if (existingUser) {
-            throw new Error("El email ya se encuentra registrado");
+            throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
         }
 
         if (role && !Object.values(USER_ROLES).includes(role)) {
-            throw new Error("Rol no válido");
+            throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
         }
 
         const newUser = await this.userRepository.create({

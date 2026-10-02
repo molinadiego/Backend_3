@@ -1,3 +1,6 @@
+import { ERRORS_CODES } from "../errors/errors.codes.js";
+import { AppError } from "../errors/app.error.js";
+
 export class OrderService {
     constructor(orderRepository) {
         this.orderRepository = orderRepository;
@@ -11,9 +14,7 @@ export class OrderService {
         const order = await this.orderRepository.findById(id);
 
         if (!order) {
-            const error = new Error("Orden no encontrada");
-            error.status = 404;
-            throw error;
+            throw new AppError(ERRORS_CODES.ORDER_NOT_FOUND);
         }
 
         return order;
@@ -27,9 +28,7 @@ export class OrderService {
         const order = await this.orderRepository.update(id, updateData);
 
         if (!order) {
-            const error = new Error("Orden no encontrada");
-            error.status = 404;
-            throw error;
+            throw new AppError(ERRORS_CODES.ORDER_NOT_FOUND);
         }
 
         return order;
@@ -39,9 +38,7 @@ export class OrderService {
         const order = await this.orderRepository.softDelete(id);
 
         if (!order) {
-            const error = new Error("Orden no encontrada");
-            error.status = 404;
-            throw error;
+            throw new AppError(ERRORS_CODES.ORDER_NOT_FOUND);
         }
 
         return order;

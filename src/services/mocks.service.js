@@ -5,22 +5,16 @@ import {
     generateDelivery,
     generateMany,
 } from "../mocks/generators.js";
-
 import { USER_ROLES } from "../constants/index.js";
+import { ERRORS_CODES } from "../errors/errors.codes.js";
+import { AppError } from "../errors/app.error.js";
 
 const MAX_QUANTITY = 50;
 
-const validateQuantity = (
-    quantity,
-    fieldName = "cantidad",
-    allowZero = false,
-) => {
+const validateQuantity = (quantity, allowZero = false) => {
     const minimum = allowZero ? 0 : 1;
-
     if (!Number.isInteger(quantity) || quantity < minimum) {
-        throw new Error(
-            `El parámetro ${fieldName} debe ser un entero mayor o igual a ${minimum}`,
-        );
+        throw new AppError(ERRORS_CODES.INVALID_MOCK_AMOUNT);
     }
 
     return Math.min(quantity, MAX_QUANTITY);
@@ -87,47 +81,34 @@ export class MocksService {
         ordersQty = 10,
         deliveriesQty = 5,
     } = {}) {
-        const validUsersQty = validateQuantity(usersQty, "usersQty", true);
+        const validUsersQty = validateQuantity(usersQty, true);
 
         const validDeliveryPersonsQty = validateQuantity(
             deliveryPersonsQty,
-            "deliveryPersonsQty",
             true,
         );
 
-        const validOrdersQty = validateQuantity(ordersQty, "ordersQty", true);
+        const validOrdersQty = validateQuantity(ordersQty, true);
 
-        const validDeliveriesQty = validateQuantity(
-            deliveriesQty,
-            "deliveriesQty",
-            true,
-        );
+        const validDeliveriesQty = validateQuantity(deliveriesQty, true);
 
         if (!this.usersRepository || !this.ordersRepository) {
-            throw new Error(
-                "Los repositorios de usuarios y pedidos son requeridos",
-            );
+            throw new AppError(ERRORS_CODES.INTERNAL_SERVER_ERROR);
         }
 
         if (!this.deliveriesRepository) {
-            throw new Error(
-                "El repositorio de entregas es requerido para ejecutar el seed",
-            );
+            throw new AppError(ERRORS_CODES.INTERNAL_SERVER_ERROR);
         }
 
         if (validOrdersQty > 0 && validUsersQty === 0) {
-            throw new Error(
-                "Se requiere al menos un usuario para generar pedidos vinculados",
-            );
+            throw new AppError(ERRORS_CODES.INVALID_MOCK_AMOUNT);
         }
 
         if (
             validDeliveriesQty > 0 &&
             (validOrdersQty === 0 || validDeliveryPersonsQty === 0)
         ) {
-            throw new Error(
-                "Se requieren pedidos y repartidores para generar entregas vinculadas",
-            );
+            throw new AppError(ERRORS_CODES.INVALID_MOCK_AMOUNT);
         }
 
         const rawUsers = await generateMany(

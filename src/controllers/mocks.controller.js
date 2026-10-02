@@ -3,23 +3,10 @@ export class MocksController {
         this.mocksService = mocksService;
     }
 
-    normalizeQuantity(value, defaultValue = 5) {
-        if (value === undefined) {
-            return defaultValue;
-        }
-
-        const quantity = Number(value);
-
-        if (!Number.isInteger(quantity) || quantity < 1) {
-            throw new Error("La cantidad debe ser un entero mayor o igual a 1");
-        }
-
-        return Math.min(quantity, 50);
-    }
-
     generateUsers = async (req, res, next) => {
         try {
-            const quantity = this.normalizeQuantity(req.query.qty);
+            const quantity =
+                req.query.qty !== undefined ? Number(req.query.qty) : undefined;
 
             const users = await this.mocksService.generateUsers(quantity);
 
@@ -34,7 +21,8 @@ export class MocksController {
 
     generateDeliveryPersons = async (req, res, next) => {
         try {
-            const quantity = this.normalizeQuantity(req.query.qty);
+            const quantity =
+                req.query.qty !== undefined ? Number(req.query.qty) : undefined;
 
             const deliveryPersons =
                 await this.mocksService.generateDeliveryPersons(quantity);
@@ -50,7 +38,8 @@ export class MocksController {
 
     generateOrders = async (req, res, next) => {
         try {
-            const quantity = this.normalizeQuantity(req.query.qty);
+            const quantity =
+                req.query.qty !== undefined ? Number(req.query.qty) : undefined;
 
             const orders = await this.mocksService.generateOrders(quantity);
 
@@ -65,7 +54,8 @@ export class MocksController {
 
     generateDeliveries = async (req, res, next) => {
         try {
-            const quantity = this.normalizeQuantity(req.query.qty);
+            const quantity =
+                req.query.qty !== undefined ? Number(req.query.qty) : undefined;
 
             const deliveries =
                 await this.mocksService.generateDeliveries(quantity);
@@ -81,25 +71,33 @@ export class MocksController {
 
     seed = async (req, res, next) => {
         try {
-            const usersQty = this.normalizeQuantity(
-                req.query.users ?? req.body.users,
-                5,
-            );
+            const usersQty =
+                req.query.users !== undefined
+                    ? Number(req.query.users)
+                    : req.body?.users !== undefined
+                      ? Number(req.body.users)
+                      : undefined;
 
-            const deliveryPersonsQty = this.normalizeQuantity(
-                req.query.deliveryPersons ?? req.body.deliveryPersons,
-                3,
-            );
+            const deliveryPersonsQty =
+                req.query.deliveryPersons !== undefined
+                    ? Number(req.query.deliveryPersons)
+                    : req.body?.deliveryPersons !== undefined
+                      ? Number(req.body.deliveryPersons)
+                      : undefined;
 
-            const ordersQty = this.normalizeQuantity(
-                req.query.orders ?? req.body.orders,
-                10,
-            );
+            const ordersQty =
+                req.query.orders !== undefined
+                    ? Number(req.query.orders)
+                    : req.body?.orders !== undefined
+                      ? Number(req.body.orders)
+                      : undefined;
 
-            const deliveriesQty = this.normalizeQuantity(
-                req.query.deliveries ?? req.body.deliveries,
-                5,
-            );
+            const deliveriesQty =
+                req.query.deliveries !== undefined
+                    ? Number(req.query.deliveries)
+                    : req.body?.deliveries !== undefined
+                      ? Number(req.body.deliveries)
+                      : undefined;
 
             const result = await this.mocksService.seed({
                 usersQty,
