@@ -8,6 +8,7 @@ import {
 import { USER_ROLES } from "../constants/index.js";
 import { ERRORS_CODES } from "../errors/errors.codes.js";
 import { AppError } from "../errors/app.error.js";
+import logger from "../utils/logger.js";
 
 const MAX_QUANTITY = 50;
 
@@ -29,14 +30,23 @@ export class MocksService {
 
     async generateUsers(quantity = 5) {
         const validQuantity = validateQuantity(quantity);
-
-        return generateMany(generateUser, validQuantity);
+        const usersGenerated = await generateMany(generateUser, validQuantity);
+        logger.info("Usuarios generados", {
+            cantidad: usersGenerated.length,
+        });
+        return usersGenerated;
     }
 
     async generateDeliveryPersons(quantity = 5) {
         const validQuantity = validateQuantity(quantity);
-
-        return generateMany(generateDeliveryPerson, validQuantity);
+        const deliveryGenerated = await generateMany(
+            generateDeliveryPerson,
+            validQuantity,
+        );
+        logger.info("Repartidores generados", {
+            cantidad: deliveryGenerated.length,
+        });
+        return deliveryGenerated;
     }
 
     async generateOrders(quantity = 5) {
@@ -47,8 +57,11 @@ export class MocksService {
             validQuantity,
             USER_ROLES.CUSTOMER,
         );
-
-        return users.map((user) => generateOrder(user));
+        const ordersGenerated = users.map((user) => generateOrder(user));
+        logger.info("Ordenes generadas.", {
+            cantidad: ordersGenerated.length,
+        });
+        return ordersGenerated;
     }
 
     async generateDeliveries(quantity = 5) {
@@ -66,13 +79,16 @@ export class MocksService {
         );
 
         const orders = users.map((user) => generateOrder(user));
-
-        return orders.map((order, index) =>
+        const deliveriesGenerated = orders.map((order, index) =>
             generateDelivery(
                 order,
                 deliveryPersons[index % deliveryPersons.length],
             ),
         );
+        logger.info("Deliveries generados.", {
+            cantidad: deliveriesGenerated.length,
+        });
+        return deliveriesGenerated;
     }
 
     async seed({
@@ -154,6 +170,13 @@ export class MocksService {
                 this.deliveriesRepository.create(delivery),
             ),
         );
+
+        logger.info("Seed completado correctamente", {
+            usersInserted: savedUsers.length,
+            deliveryPersonsInserted: savedDeliveryPersons.length,
+            ordersInserted: savedOrders.length,
+            deliveriesInserted: savedDeliveries.length,
+        });
 
         return {
             usersInserted: savedUsers.length,
