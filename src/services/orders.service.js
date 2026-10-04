@@ -1,5 +1,6 @@
 import { ERRORS_CODES } from "../errors/errors.codes.js";
 import { AppError } from "../errors/app.error.js";
+import logger from "../utils/logger.js";
 
 export class OrderService {
     constructor(orderRepository) {
@@ -21,7 +22,11 @@ export class OrderService {
     }
 
     async create(orderData) {
-        return this.orderRepository.create(orderData);
+        const orderCreated = await this.orderRepository.create(orderData);
+        logger.info("Orden creada.", {
+            orderId: orderCreated._id,
+        });
+        return orderCreated;
     }
 
     async update(id, updateData) {

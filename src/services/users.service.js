@@ -1,6 +1,7 @@
 import { USER_ROLES } from "../constants/index.js";
 import { AppError } from "../errors/app.error.js";
 import { ERRORS_CODES } from "../errors/errors.codes.js";
+import logger from "../utils/logger.js";
 
 export class UserService {
     constructor(userRepository) {
@@ -45,6 +46,10 @@ export class UserService {
             role: role || USER_ROLES.CUSTOMER,
         });
 
+        logger.info("Usuario creado", {
+            userId: newUser._id,
+            role: newUser.role,
+        });
         const userObj = newUser.toObject();
 
         delete userObj.password;

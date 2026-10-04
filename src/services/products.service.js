@@ -1,6 +1,7 @@
 import { PRODUCT_STATUS } from "../constants/index.js";
 import { ERRORS_CODES } from "../errors/errors.codes.js";
 import { AppError } from "../errors/app.error.js";
+import logger from "../utils/logger.js";
 
 export class ProductService {
     constructor(productRepository) {
@@ -23,10 +24,14 @@ export class ProductService {
                 ? PRODUCT_STATUS.AVAILABLE
                 : PRODUCT_STATUS.OUT_OF_STOCK;
 
-        return this.productRepository.create({
+        const productCreated = await this.productRepository.create({
             ...data,
             status,
         });
+        logger.info("Producto creado.", {
+            productId: productCreated._id,
+        });
+        return productCreated;
     }
 
     async updateStock(id, newStock) {
@@ -46,7 +51,10 @@ export class ProductService {
         if (!product) {
             throw new AppError(ERRORS_CODES.PRODUCT_NOT_FOUND);
         }
-
+        logger.info("Producto actualizado.", {
+            productId: product._id,
+            stock: product.stock,
+        });
         return product;
     }
 

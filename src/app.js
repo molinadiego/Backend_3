@@ -24,14 +24,17 @@ import { createUsersRouter } from "./routes/users.router.js";
 import { createOrdersRouter } from "./routes/orders.router.js";
 import { createProductRouter } from "./routes/products.router.js";
 import { createMocksRouter } from "./routes/mocks.router.js";
+import { createLoggerRouter } from "./routes/logger.router.js";
 
 import { errorHandler } from "./middlewares/error.middleware.js";
 import { routeNotFound } from "./middlewares/notfound.middleware.js";
+import { httpMiddleware } from "./middlewares/http.middleware.js";
 
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(httpMiddleware);
 
 const userRepository = new UserRepository(UserModel);
 const orderRepository = new OrderRepository(OrderModel);
@@ -57,6 +60,7 @@ app.use("/api/users", createUsersRouter(userController));
 app.use("/api/orders", createOrdersRouter(orderController));
 app.use("/api/products", createProductRouter(productController));
 app.use("/api/mocks", createMocksRouter(mocksController));
+app.use("/api/logger", createLoggerRouter());
 
 app.use(routeNotFound);
 app.use(errorHandler);
