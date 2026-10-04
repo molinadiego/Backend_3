@@ -2,7 +2,7 @@
 
 API backend para la gestión de usuarios, productos, órdenes y entregas, desarrollada con **Node.js, Express y MongoDB**.
 
-El proyecto utiliza una arquitectura por capas, inyección de dependencias, generación de datos de prueba mediante mocking y un sistema centralizado de manejo profesional de errores.
+El proyecto utiliza una arquitectura por capas, inyección de dependencias, generación de datos de prueba mediante mocking, un sistema centralizado de manejo profesional de errores y logging mediante **Winston**.
 
 ---
 
@@ -19,6 +19,12 @@ El proyecto utiliza una arquitectura por capas, inyección de dependencias, gene
 - [Validación de cantidades](#-validación-de-cantidades)
 - [Relaciones entre entidades](#-relaciones-entre-entidades)
 - [Inyección de dependencias](#-inyección-de-dependencias)
+- [Logging](#-logging)
+- [Niveles de logging](#-niveles-de-logging)
+- [Logging HTTP](#-logging-http)
+- [Archivo de errores y rotación](#-archivo-de-errores-y-rotación)
+- [Endpoint de prueba del logger](#-endpoint-de-prueba-del-logger)
+- [Entornos de ejecución](#-entornos-de-ejecución)
 - [Variables de entorno](#-variables-de-entorno)
 - [Instalación](#-instalación)
 - [Pruebas con cURL](#-pruebas-con-curl)
@@ -35,6 +41,8 @@ El proyecto utiliza una arquitectura por capas, inyección de dependencias, gene
 - **Faker**
 - **bcrypt**
 - **dotenv**
+- **Winston**
+- **winston-daily-rotate-file**
 - **JavaScript ES Modules**
 
 ---
@@ -86,6 +94,26 @@ Los endpoints de generación utilizan los generators sin persistir datos.
 
 El endpoint `seed`, en cambio, utiliza los repositories para insertar los datos generados en MongoDB.
 
+### Arquitectura del logging HTTP
+
+```text
+HTTP Request
+     ↓
+httpMiddleware
+     ↓
+Route / Controller / Service
+     ↓
+HTTP Response
+     ↓
+logger.http()
+```
+
+El middleware registra cada petición cuando finaliza, incluyendo:
+
+- Método HTTP.
+- Ruta solicitada.
+- Código de estado HTTP.
+
 ---
 
 ## 📁 Estructura del proyecto
@@ -104,6 +132,7 @@ Backend_3/
 │   │   └── index.js
 │   │
 │   ├── controllers/
+│   │   ├── logger.controller.js
 │   │   ├── mocks.controller.js
 │   │   ├── orders.controller.js
 │   │   ├── products.controller.js
@@ -116,6 +145,7 @@ Backend_3/
 │   │
 │   ├── middlewares/
 │   │   ├── error.middleware.js
+│   │   ├── http.middleware.js
 │   │   └── notfound.middleware.js
 │   │
 │   ├── mocks/
@@ -134,16 +164,20 @@ Backend_3/
 │   │   └── users.repository.js
 │   │
 │   ├── routes/
+│   │   ├── logger.router.js
 │   │   ├── mocks.router.js
 │   │   ├── orders.router.js
 │   │   ├── products.router.js
 │   │   └── users.router.js
 │   │
-│   └── services/
-│       ├── mocks.service.js
-│       ├── orders.service.js
-│       ├── products.service.js
-│       └── users.service.js
+│   ├── services/
+│   │   ├── mocks.service.js
+│   │   ├── orders.service.js
+│   │   ├── products.service.js
+│   │   └── users.service.js
+│   │
+│   └── utils/
+│       └── logger.js
 │
 ├── .env
 ├── .env.example
@@ -194,7 +228,12 @@ Los roles disponibles se encuentran definidos en:
 USER_ROLES
 ```
 
-Los usuarios pueden generarse como clientes, administradores u otros roles definidos por el sistema.
+Cuando no se especifica un rol, el generator selecciona aleatoriamente entre:
+
+```text
+CUSTOMER
+ADMIN
+```
 
 Las contraseñas son almacenadas como hashes utilizando `bcrypt`.
 
@@ -698,6 +737,296 @@ Este enfoque permite mantener las responsabilidades separadas y facilita reempla
 
 ---
 
+# 📝 Logging
+
+ShipNow utiliza **Winston** como sistema centralizado de logging.
+
+La configuración se encuentra en:
+
+```text
+src/utils/logger.js
+```
+
+El logger permite registrar eventos importantes de la aplicación utilizando diferentes niveles de severidad.
+
+La aplicación evita utilizar `console.log`, `console.error` y métodos similares dentro del código fuente.
+
+Los logs pueden enviarse a:
+
+- La consola.
+- Archivos rotativos para errores.
+
+Los eventos de negocio y errores se registran desde las capas correspondientes, mientras que las peticiones HTTP son registradas mediante un middleware global.
+
+---
+
+# 📊 Niveles de logging
+
+ShipNow utiliza seis niveles personalizados:
+
+| Nivel     | Prioridad | Uso                                                |
+| --------- | --------: | -------------------------------------------------- |
+| `fatal`   |         0 | Fallos críticos que impiden continuar la ejecución |
+| `error`   |         1 | Errores inesperados de la aplicación               |
+| `warning` |         2 | Errores controlados o situaciones esperadas        |
+| `info`    |         3 | Eventos importantes de la aplicación               |
+| `http`    |         4 | Información relacionada con peticiones HTTP        |
+| `debug`   |         5 | Información detallada para desarrollo              |
+
+### `fatal`
+
+Se utiliza para errores críticos que comprometen el funcionamiento de la aplicación.
+
+Ejemplo:
+
+```text
+Error al conectar a MongoDB
+```
+
+### `error`
+
+Se utiliza para errores inesperados que no fueron tratados como errores de negocio.
+
+Ejemplo:
+
+```text
+CastError de Mongoose
+```
+
+### `warning`
+
+Se utiliza para errores controlados mediante `AppError`.
+
+Ejemplos:
+
+```text
+USER_NOT_FOUND
+PRODUCT_NOT_FOUND
+ORDER_NOT_FOUND
+ROUTE_NOT_FOUND
+INVALID_MOCK_AMOUNT
+```
+
+### `info`
+
+Se utiliza para eventos importantes de la aplicación.
+
+Ejemplos:
+
+```text
+Conexión a MongoDB establecida
+Servidor iniciado
+Usuario creado
+Producto creado
+Producto actualizado
+Usuarios generados
+Seed completado
+```
+
+### `http`
+
+Se utiliza para registrar el resultado de las peticiones HTTP.
+
+Incluye:
+
+```text
+method
+path
+statusCode
+```
+
+### `debug`
+
+Se utiliza para información detallada principalmente durante el desarrollo.
+
+---
+
+# 🌐 Logging HTTP
+
+Las peticiones HTTP son registradas mediante:
+
+```text
+src/middlewares/http.middleware.js
+```
+
+El middleware utiliza el evento:
+
+```js
+res.on("finish");
+```
+
+para registrar la petición una vez que la respuesta HTTP finaliza.
+
+Ejemplo:
+
+```text
+[http] HTTP {
+    "path": "/api/products",
+    "method": "POST",
+    "statusCode": 201
+}
+```
+
+Esto permite conocer cómo terminó cada petición independientemente de que haya sido exitosa o haya producido un error.
+
+Los errores de negocio se registran además mediante el `errorHandler`, utilizando el nivel `warning`.
+
+De esta forma:
+
+```text
+Error de negocio
+      ↓
+warning
+
+Resultado HTTP
+      ↓
+http
+```
+
+Cada log representa información diferente y no constituye una duplicación del mismo evento.
+
+---
+
+# 📂 Archivo de errores y rotación
+
+Los errores de nivel:
+
+```text
+error
+fatal
+```
+
+se almacenan en archivos dentro del directorio:
+
+```text
+log/
+```
+
+Los archivos utilizan rotación diaria:
+
+```text
+errors-YYYY-MM-DD.log
+```
+
+Ejemplo:
+
+```text
+log/
+└── errors-2026-10-03.log
+```
+
+El sistema conserva los archivos durante **14 días**.
+
+El archivo de errores utiliza formato JSON estructurado e incluye información como:
+
+```text
+timestamp
+level
+message
+stack
+```
+
+Los niveles `info`, `warning`, `http` y `debug` no se almacenan en este archivo.
+
+El directorio `log/` se encuentra incluido en `.gitignore`, por lo que los logs generados localmente no deben subirse al repositorio.
+
+---
+
+# 🧪 Endpoint de prueba del logger
+
+Para comprobar el funcionamiento de los seis niveles de logging existe un endpoint específico:
+
+```http
+GET /api/logger/loggertest
+```
+
+Ejemplo:
+
+```bash
+curl http://localhost:8080/api/logger/loggertest
+```
+
+El endpoint genera un mensaje de prueba para cada nivel:
+
+```text
+debug
+http
+info
+warning
+error
+fatal
+```
+
+Además, como la petición pasa por el `httpMiddleware`, al finalizar la respuesta se genera un registro adicional de nivel `http` correspondiente a la propia petición.
+
+Respuesta:
+
+```json
+{
+    "status": "success",
+    "message": "logs generados correctamente"
+}
+```
+
+Este endpoint se utiliza exclusivamente para verificar el funcionamiento del sistema de logging durante el desarrollo.
+
+---
+
+# 🌎 Entornos de ejecución
+
+El comportamiento del logger depende de la variable:
+
+```text
+NODE_ENV
+```
+
+### Development
+
+Cuando:
+
+```env
+NODE_ENV=development
+```
+
+la consola permite visualizar desde el nivel:
+
+```text
+debug
+```
+
+Por lo tanto se muestran:
+
+```text
+debug
+http
+info
+warning
+error
+fatal
+```
+
+Esto facilita el diagnóstico durante el desarrollo.
+
+### Production
+
+Cuando:
+
+```env
+NODE_ENV=production
+```
+
+la consola comienza desde:
+
+```text
+info
+```
+
+Por lo tanto no se muestran los mensajes `debug` ni `http` en la consola.
+
+Los errores `error` y `fatal` se registran en los archivos rotativos configurados, independientemente del entorno.
+
+---
+
 # 🔐 Variables de entorno
 
 Las variables de entorno se almacenan en un archivo `.env` ubicado en la raíz del proyecto.
@@ -708,6 +1037,16 @@ Ejemplo:
 PORT=8080
 MONGODB_URI=mongodb://your-mongodb-url
 NODE_ENV=development
+JWT_SECRET=your-secret
+```
+
+Las variables obligatorias son:
+
+```text
+PORT
+NODE_ENV
+MONGODB_URI
+JWT_SECRET
 ```
 
 El archivo `.env` contiene información sensible y **no debe subirse al repositorio**.
@@ -724,6 +1063,7 @@ Ejemplo:
 PORT=8080
 MONGODB_URI=
 NODE_ENV=development
+JWT_SECRET=
 ```
 
 ---
@@ -774,7 +1114,7 @@ PORT
 
 ---
 
-# 🧪 Pruebas con CURL
+# 🧪 Pruebas con cURL
 
 Con el servidor iniciado en:
 
@@ -962,6 +1302,117 @@ con la cantidad de registros insertados.
 
 ---
 
+### Crear usuario
+
+```bash
+curl -i -X POST http://localhost:8080/api/users \
+-H "Content-Type: application/json" \
+-d '{"name":"Usuario Test","email":"usuario@test.com","password":"123456","role":"customer"}'
+```
+
+Esperado:
+
+```text
+201 Created
+```
+
+Además se registra un evento `info` indicando que el usuario fue creado.
+
+---
+
+### Crear producto
+
+```bash
+curl -i -X POST http://localhost:8080/api/products \
+-H "Content-Type: application/json" \
+-d '{"name":"Producto Test","price":100,"stock":10}'
+```
+
+Esperado:
+
+```text
+201 Created
+```
+
+Además se registra un evento `info` indicando que el producto fue creado.
+
+---
+
+### Actualizar stock de producto
+
+Reemplazar `PRODUCT_ID` por el identificador de un producto existente:
+
+```bash
+curl -i -X PATCH http://localhost:8080/api/products/PRODUCT_ID/stock \
+-H "Content-Type: application/json" \
+-d '{"stock":25}'
+```
+
+Esperado:
+
+```text
+200 OK
+```
+
+Además se registra un evento `info` indicando la actualización del producto.
+
+---
+
+### Error inesperado
+
+Un identificador que no corresponde a un `ObjectId` válido permite comprobar el manejo de errores inesperados:
+
+```bash
+curl -i http://localhost:8080/api/products/123
+```
+
+Esperado:
+
+```text
+500 Internal Server Error
+```
+
+```text
+INTERNAL_SERVER_ERROR
+```
+
+El error técnico se registra internamente con nivel:
+
+```text
+error
+```
+
+mientras que el cliente recibe una respuesta genérica.
+
+---
+
+### Prueba de todos los niveles del logger
+
+```bash
+curl -i http://localhost:8080/api/logger/loggertest
+```
+
+Esperado:
+
+```text
+200 OK
+```
+
+y generación de mensajes:
+
+```text
+debug
+http
+info
+warning
+error
+fatal
+```
+
+Además, el middleware HTTP genera un registro `http` adicional al finalizar la petición.
+
+---
+
 # 📌 Estado del proyecto
 
 ShipNow continúa su desarrollo sobre una única estructura de proyecto.
@@ -986,6 +1437,15 @@ Actualmente cuenta con:
 - Respuestas de error HTTP uniformes.
 - Manejo diferenciado de errores controlados e inesperados.
 - Middleware para rutas inexistentes.
+- Middleware global para logging HTTP.
+- Logging centralizado mediante Winston.
+- Seis niveles de logging: `debug`, `http`, `info`, `warning`, `error` y `fatal`.
+- Registro de eventos importantes de la aplicación.
+- Registro de errores inesperados con stack trace.
+- Archivos de errores con rotación diaria.
+- Retención de logs durante 14 días.
+- Configuración diferenciada para development y production.
+- Endpoint de prueba para verificar los niveles de logging.
 - Configuración mediante variables de entorno.
 
 El proyecto utiliza Git para conservar el historial de las diferentes etapas de desarrollo.
