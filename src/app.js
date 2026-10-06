@@ -1,4 +1,6 @@
 import express from "express";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpecs } from "./docs/swagger.config.js";
 
 import { UserModel } from "./models/user.model.js";
 import { OrderModel } from "./models/order.model.js";
@@ -61,6 +63,8 @@ app.use("/api/orders", createOrdersRouter(orderController));
 app.use("/api/products", createProductRouter(productController));
 app.use("/api/mocks", createMocksRouter(mocksController));
 app.use("/api/logger", createLoggerRouter());
+
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 app.use(routeNotFound);
 app.use(errorHandler);

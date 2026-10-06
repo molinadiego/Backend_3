@@ -2,7 +2,7 @@
 
 API backend para la gestión de usuarios, productos, órdenes y entregas, desarrollada con **Node.js, Express y MongoDB**.
 
-El proyecto utiliza una arquitectura por capas, inyección de dependencias, generación de datos de prueba mediante mocking, un sistema centralizado de manejo profesional de errores y logging mediante **Winston**.
+El proyecto utiliza una arquitectura por capas, inyección de dependencias, generación de datos de prueba mediante mocking, un sistema centralizado de manejo profesional de errores, logging mediante **Winston** y documentación de la API mediante **Swagger/OpenAPI**.
 
 ---
 
@@ -10,6 +10,7 @@ El proyecto utiliza una arquitectura por capas, inyección de dependencias, gene
 
 - [Tecnologías](#-tecnologías)
 - [Arquitectura](#-arquitectura)
+- [Documentación de la API](#-documentación-de-la-api)
 - [Estructura del proyecto](#-estructura-del-proyecto)
 - [Mocking](#-mocking)
 - [Endpoints de Mocking](#-endpoints-de-mocking)
@@ -43,6 +44,8 @@ El proyecto utiliza una arquitectura por capas, inyección de dependencias, gene
 - **dotenv**
 - **Winston**
 - **winston-daily-rotate-file**
+- **swagger-jsdoc**
+- **swagger-ui-express**
 - **JavaScript ES Modules**
 
 ---
@@ -116,6 +119,102 @@ El middleware registra cada petición cuando finaliza, incluyendo:
 
 ---
 
+# 📚 Documentación de la API
+
+ShipNow utiliza **Swagger UI** y **OpenAPI 3.0** para documentar los endpoints disponibles de la API.
+
+La configuración general de Swagger se encuentra en:
+
+```text
+src/docs/swagger.config.js
+```
+
+La documentación de los endpoints se mantiene separada de las rutas de Express mediante archivos YAML:
+
+```text
+src/docs/
+├── logger.yaml
+├── mocks.yaml
+├── orders.yaml
+├── products.yaml
+├── schemas.yaml
+├── swagger.config.js
+└── users.yaml
+```
+
+Los schemas reutilizables se encuentran centralizados en:
+
+```text
+src/docs/schemas.yaml
+```
+
+Entre ellos se encuentran:
+
+```text
+User
+Order
+Delivery
+Product
+ErrorResponse
+SuccessResponse
+```
+
+### Acceso a Swagger UI
+
+Con el servidor iniciado, la documentación está disponible en:
+
+```text
+http://localhost:8080/api/docs
+```
+
+Swagger UI permite:
+
+- Consultar los endpoints disponibles.
+- Visualizar los métodos HTTP.
+- Consultar parámetros de ruta y query.
+- Visualizar los cuerpos de las peticiones.
+- Consultar respuestas exitosas y errores.
+- Visualizar los schemas reutilizables.
+- Probar los endpoints directamente desde la interfaz mediante `Try it out`.
+
+### Módulos documentados
+
+La documentación incluye actualmente:
+
+```text
+Users
+Products
+Orders
+Mocks
+Logger
+```
+
+También se encuentra documentado el schema `Delivery`, utilizado por los endpoints de mocking y por las relaciones entre entidades.
+
+El módulo de Deliveries no dispone actualmente de endpoints CRUD públicos independientes; por este motivo no se documentan rutas que no existen en la API.
+
+### Inicio del servidor
+
+Para acceder a Swagger primero se debe iniciar la aplicación:
+
+```bash
+npm run dev
+```
+
+Luego abrir:
+
+```text
+http://localhost:8080/api/docs
+```
+
+La documentación utiliza como servidor local:
+
+```text
+http://localhost:8080
+```
+
+---
+
 ## 📁 Estructura del proyecto
 
 ```text
@@ -176,8 +275,17 @@ Backend_3/
 │   │   ├── products.service.js
 │   │   └── users.service.js
 │   │
-│   └── utils/
-│       └── logger.js
+│   ├── utils/
+│   │   └── logger.js
+│   │
+│   └── docs/
+│       ├── logger.yaml
+│       ├── mocks.yaml
+│       ├── orders.yaml
+│       ├── products.yaml
+│       ├── schemas.yaml
+│       ├── swagger.config.js
+│       └── users.yaml
 │
 ├── .env
 ├── .env.example
@@ -1124,6 +1232,18 @@ http://localhost:8080
 
 se pueden realizar las siguientes pruebas.
 
+### Documentación Swagger
+
+La documentación interactiva de la API está disponible en:
+
+```text
+http://localhost:8080/api/docs
+```
+
+Abrir esta dirección en el navegador permite consultar y probar los endpoints documentados mediante Swagger UI.
+
+---
+
 ### Ruta inexistente
 
 ```bash
@@ -1446,6 +1566,10 @@ Actualmente cuenta con:
 - Retención de logs durante 14 días.
 - Configuración diferenciada para development y production.
 - Endpoint de prueba para verificar los niveles de logging.
+- Documentación de la API mediante Swagger/OpenAPI 3.0.
+- Swagger UI disponible en `/api/docs`.
+- Schemas reutilizables para las principales entidades y respuestas.
+- Documentación de endpoints, parámetros, cuerpos, respuestas y errores.
 - Configuración mediante variables de entorno.
 
 El proyecto utiliza Git para conservar el historial de las diferentes etapas de desarrollo.

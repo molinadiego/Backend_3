@@ -1,0 +1,240 @@
+/api/users:
+    get:
+        tags:
+            - Users
+        summary: Obtener todos los usuarios
+        description: Obtiene todos los usuarios activos registrados en ShipNow.
+        responses:
+            "200":
+                description: Lista de usuarios obtenida correctamente.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                status:
+                                    type: string
+                                    example: success
+                                data:
+                                    type: array
+                                    items:
+                                        $ref: "#/components/schemas/User"
+            "500":
+                description: Error interno del servidor.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+        tags:
+            - Users
+        summary: Crear un usuario
+        description: Crea un nuevo usuario en ShipNow.
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - name
+                            - email
+                            - password
+                        properties:
+                            name:
+                                type: string
+                                example: "Juan Pérez"
+                            email:
+                                type: string
+                                format: email
+                                example: "juan@example.com"
+                            password:
+                                type: string
+                                example: "Password123"
+                            role:
+                                type: string
+                                enum:
+                                    - admin
+                                    - customer
+                                    - driver
+                                    - store
+                                example: customer
+        responses:
+            "201":
+                description: Usuario creado correctamente.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                status:
+                                    type: string
+                                    example: success
+                                data:
+                                    $ref: "#/components/schemas/User"
+            "400":
+                description: Datos enviados no válidos.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "500":
+                description: Error interno del servidor.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+
+/api/users/{id}:
+    get:
+        tags:
+            - Users
+        summary: Obtener un usuario por ID
+        description: Obtiene un usuario activo utilizando su identificador.
+        parameters:
+            - name: id
+              in: path
+              required: true
+              description: Identificador del usuario.
+              schema:
+                  type: string
+                  example: "507f1f77bcf86cd799439011"
+        responses:
+            "200":
+                description: Usuario obtenido correctamente.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                status:
+                                    type: string
+                                    example: success
+                                data:
+                                    $ref: "#/components/schemas/User"
+            "404":
+                description: Usuario no encontrado.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "500":
+                description: Error interno del servidor.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+        tags:
+            - Users
+        summary: Actualizar un usuario
+        description: Actualiza los datos de un usuario existente.
+        parameters:
+            - name: id
+              in: path
+              required: true
+              description: Identificador del usuario.
+              schema:
+                  type: string
+                  example: "507f1f77bcf86cd799439011"
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            name:
+                                type: string
+                                example: "Juan Pérez"
+                            email:
+                                type: string
+                                format: email
+                                example: "juan.nuevo@example.com"
+                            password:
+                                type: string
+                                example: "NuevaPassword123"
+                            role:
+                                type: string
+                                enum:
+                                    - admin
+                                    - customer
+                                    - driver
+                                    - store
+                                example: customer
+                            isActive:
+                                type: boolean
+                                example: true
+        responses:
+            "200":
+                description: Usuario actualizado correctamente.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                status:
+                                    type: string
+                                    example: success
+                                data:
+                                    $ref: "#/components/schemas/User"
+            "400":
+                description: Datos enviados no válidos.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "404":
+                description: Usuario no encontrado.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "500":
+                description: Error interno del servidor.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+        tags:
+            - Users
+        summary: Eliminar un usuario
+        description: Desactiva un usuario mediante eliminación lógica.
+        parameters:
+            - name: id
+              in: path
+              required: true
+              description: Identificador del usuario.
+              schema:
+                  type: string
+                  example: "507f1f77bcf86cd799439011"
+        responses:
+            "200":
+                description: Usuario eliminado correctamente.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                status:
+                                    type: string
+                                    example: success
+                                message:
+                                    type: string
+                                    example: "Usuario eliminado correctamente"
+            "404":
+                description: Usuario no encontrado.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "500":
+                description: Error interno del servidor.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"

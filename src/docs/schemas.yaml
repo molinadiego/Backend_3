@@ -1,0 +1,182 @@
+components:
+    schemas:
+        User:
+            type: object
+            properties:
+                _id:
+                    type: string
+                    example: "507f1f77bcf86cd799439011"
+                name:
+                    type: string
+                    example: "Juan Pérez"
+                email:
+                    type: string
+                    format: email
+                    example: "juan@example.com"
+                role:
+                    type: string
+                    enum:
+                        - admin
+                        - customer
+                        - driver
+                        - store
+                    example: customer
+                isActive:
+                    type: boolean
+                    example: true
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+
+        Order:
+            type: object
+            properties:
+                _id:
+                    type: string
+                    example: "507f1f77bcf86cd799439012"
+                userId:
+                    oneOf:
+                        - type: string
+                          example: "507f1f77bcf86cd799439011"
+                        - type: object
+                          properties:
+                              _id:
+                                  type: string
+                                  example: "507f1f77bcf86cd799439011"
+                              name:
+                                  type: string
+                                  example: "Juan Pérez"
+                              email:
+                                  type: string
+                                  format: email
+                                  example: "juan@example.com"
+                deliveryAddress:
+                    type: string
+                    example: "Av. Siempre Viva 123"
+                total:
+                    type: number
+                    minimum: 0
+                    example: 125.50
+                status:
+                    type: string
+                    enum:
+                        - created
+                        - assigned
+                        - picked_up
+                        - in_transit
+                        - delivered
+                        - cancelled
+                    example: created
+                priority:
+                    type: string
+                    enum:
+                        - low
+                        - normal
+                        - high
+                    example: normal
+                isActive:
+                    type: boolean
+                    example: true
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+
+        Delivery:
+            type: object
+            properties:
+                _id:
+                    type: string
+                    example: "507f1f77bcf86cd799439013"
+                order:
+                    type: string
+                    example: "507f1f77bcf86cd799439012"
+                deliveryPerson:
+                    type: string
+                    example: "507f1f77bcf86cd799439014"
+                status:
+                    type: string
+                    enum:
+                        - pending
+                        - assigned
+                        - in_transit
+                        - delivered
+                        - cancelled
+                    example: pending
+                address:
+                    type: string
+                    example: "Av. Siempre Viva 123"
+                estimatedDeliveryDate:
+                    type: string
+                    format: date-time
+                    example: "2026-10-10T18:00:00.000Z"
+                isActive:
+                    type: boolean
+                    example: true
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+
+        Product:
+            type: object
+            properties:
+                _id:
+                    type: string
+                    example: "507f1f77bcf86cd799439015"
+                name:
+                    type: string
+                    example: "Mouse inalámbrico"
+                price:
+                    type: number
+                    minimum: 0
+                    example: 25.99
+                stock:
+                    type: number
+                    minimum: 0
+                    example: 10
+                status:
+                    type: string
+                    enum:
+                        - AVAILABLE
+                        - OUT_OF_STOCK
+                    example: AVAILABLE
+                isActive:
+                    type: boolean
+                    example: true
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+
+        ErrorResponse:
+            type: object
+            properties:
+                status:
+                    type: string
+                    example: error
+                error:
+                    type: string
+                    example: USER_NOT_FOUND
+                message:
+                    type: string
+                    example: "No se encontró el usuario solicitado."
+
+        SuccessResponse:
+            type: object
+            properties:
+                status:
+                    type: string
+                    example: success
+                message:
+                    type: string
+                    example: "Operación realizada correctamente."

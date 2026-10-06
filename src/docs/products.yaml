@@ -1,0 +1,179 @@
+/api/products:
+    get:
+        tags:
+            - Products
+        summary: Obtener todos los productos
+        description: Obtiene todos los productos activos registrados en ShipNow.
+        responses:
+            "200":
+                description: Lista de productos obtenida correctamente.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                status:
+                                    type: string
+                                    example: success
+                                data:
+                                    type: array
+                                    items:
+                                        $ref: "#/components/schemas/Product"
+            "500":
+                description: Error interno del servidor.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+        tags:
+            - Products
+        summary: Crear un producto
+        description: Crea un nuevo producto. El estado se determina automáticamente según el stock.
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - name
+                            - price
+                            - stock
+                        properties:
+                            name:
+                                type: string
+                                example: "Mouse inalámbrico"
+                            price:
+                                type: number
+                                minimum: 0
+                                example: 25.99
+                            stock:
+                                type: number
+                                minimum: 0
+                                example: 10
+        responses:
+            "201":
+                description: Producto creado correctamente.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                status:
+                                    type: string
+                                    example: success
+                                data:
+                                    $ref: "#/components/schemas/Product"
+            "400":
+                description: Datos enviados no válidos.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "500":
+                description: Error interno del servidor.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+
+/api/products/{id}:
+    get:
+        tags:
+            - Products
+        summary: Obtener un producto por ID
+        description: Obtiene un producto activo utilizando su identificador.
+        parameters:
+            - name: id
+              in: path
+              required: true
+              description: Identificador del producto.
+              schema:
+                  type: string
+                  example: "507f1f77bcf86cd799439015"
+        responses:
+            "200":
+                description: Producto obtenido correctamente.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                status:
+                                    type: string
+                                    example: success
+                                data:
+                                    $ref: "#/components/schemas/Product"
+            "404":
+                description: Producto no encontrado.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "500":
+                description: Error interno del servidor.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+
+/api/products/{id}/stock:
+    patch:
+        tags:
+            - Products
+        summary: Actualizar el stock de un producto
+        description: Actualiza el stock de un producto y determina automáticamente su estado.
+        parameters:
+            - name: id
+              in: path
+              required: true
+              description: Identificador del producto.
+              schema:
+                  type: string
+                  example: "507f1f77bcf86cd799439015"
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - stock
+                        properties:
+                            stock:
+                                type: number
+                                minimum: 0
+                                example: 25
+        responses:
+            "200":
+                description: Stock actualizado correctamente.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                status:
+                                    type: string
+                                    example: success
+                                data:
+                                    $ref: "#/components/schemas/Product"
+            "400":
+                description: Datos enviados no válidos.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "404":
+                description: Producto no encontrado.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "500":
+                description: Error interno del servidor.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"

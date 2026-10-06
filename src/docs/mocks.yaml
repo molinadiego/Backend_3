@@ -1,0 +1,281 @@
+/api/mocks/users:
+    get:
+        tags:
+            - Mocks
+        summary: Generar usuarios de prueba
+        description: Genera usuarios ficticios en memoria sin almacenarlos en MongoDB. La cantidad debe ser un entero positivo. El valor por defecto es 5. Si la cantidad supera el límite de 50, se utiliza 50.
+        parameters:
+            - name: qty
+              in: query
+              required: false
+              description: Cantidad de usuarios a generar.
+              schema:
+                  type: integer
+                  minimum: 1
+                  default: 5
+                  example: 3
+        responses:
+            "200":
+                description: Usuarios generados correctamente.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                status:
+                                    type: string
+                                    example: success
+                                payload:
+                                    type: array
+                                    items:
+                                        $ref: "#/components/schemas/User"
+            "400":
+                description: Cantidad de registros no válida.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "500":
+                description: Error interno del servidor.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+
+/api/mocks/delivery-persons:
+    get:
+        tags:
+            - Mocks
+        summary: Generar repartidores de prueba
+        description: Genera usuarios ficticios con rol de repartidor en memoria sin almacenarlos en MongoDB. La cantidad debe ser un entero positivo. El valor por defecto es 5. Si la cantidad supera el límite de 50, se utiliza 50.
+        parameters:
+            - name: qty
+              in: query
+              required: false
+              description: Cantidad de repartidores a generar.
+              schema:
+                  type: integer
+                  minimum: 1
+                  default: 5
+                  example: 2
+        responses:
+            "200":
+                description: Repartidores generados correctamente.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                status:
+                                    type: string
+                                    example: success
+                                payload:
+                                    type: array
+                                    items:
+                                        $ref: "#/components/schemas/User"
+            "400":
+                description: Cantidad de registros no válida.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "500":
+                description: Error interno del servidor.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+
+/api/mocks/orders:
+    get:
+        tags:
+            - Mocks
+        summary: Generar pedidos de prueba
+        description: Genera usuarios y pedidos ficticios relacionados en memoria sin almacenarlos en MongoDB. La cantidad debe ser un entero positivo. El valor por defecto es 5. Si la cantidad supera el límite de 50, se utiliza 50.
+        parameters:
+            - name: qty
+              in: query
+              required: false
+              description: Cantidad de pedidos a generar.
+              schema:
+                  type: integer
+                  minimum: 1
+                  default: 5
+                  example: 3
+        responses:
+            "200":
+                description: Pedidos generados correctamente.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                status:
+                                    type: string
+                                    example: success
+                                payload:
+                                    type: array
+                                    items:
+                                        $ref: "#/components/schemas/Order"
+            "400":
+                description: Cantidad de registros no válida.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "500":
+                description: Error interno del servidor.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+
+/api/mocks/deliveries:
+    get:
+        tags:
+            - Mocks
+        summary: Generar entregas de prueba
+        description: Genera entregas ficticias relacionadas con pedidos y repartidores en memoria sin almacenarlas en MongoDB. La cantidad debe ser un entero positivo. El valor por defecto es 5. Si la cantidad supera el límite de 50, se utiliza 50.
+        parameters:
+            - name: qty
+              in: query
+              required: false
+              description: Cantidad de entregas a generar.
+              schema:
+                  type: integer
+                  minimum: 1
+                  default: 5
+                  example: 2
+        responses:
+            "200":
+                description: Entregas generadas correctamente.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                status:
+                                    type: string
+                                    example: success
+                                payload:
+                                    type: array
+                                    items:
+                                        $ref: "#/components/schemas/Delivery"
+            "400":
+                description: Cantidad de registros no válida.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "500":
+                description: Error interno del servidor.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+
+/api/mocks/seed:
+    post:
+        tags:
+            - Mocks
+        summary: Insertar datos de prueba
+        description: Genera e inserta usuarios, repartidores, pedidos y entregas de prueba en MongoDB. Las cantidades pueden enviarse mediante query parameters o mediante el body en formato JSON. Si se envía un mismo parámetro por ambos medios, se utiliza el valor recibido por query. El valor máximo procesado por cada cantidad es 50.
+        parameters:
+            - name: users
+              in: query
+              required: false
+              description: Cantidad de usuarios clientes a insertar. Por defecto 5.
+              schema:
+                  type: integer
+                  minimum: 0
+                  default: 5
+                  example: 2
+            - name: deliveryPersons
+              in: query
+              required: false
+              description: Cantidad de repartidores a insertar. Por defecto 3.
+              schema:
+                  type: integer
+                  minimum: 0
+                  default: 3
+                  example: 1
+            - name: orders
+              in: query
+              required: false
+              description: Cantidad de pedidos a insertar. Por defecto 10.
+              schema:
+                  type: integer
+                  minimum: 0
+                  default: 10
+                  example: 2
+            - name: deliveries
+              in: query
+              required: false
+              description: Cantidad de entregas a insertar. Por defecto 5.
+              schema:
+                  type: integer
+                  minimum: 0
+                  default: 5
+                  example: 1
+        requestBody:
+            required: false
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            users:
+                                type: integer
+                                minimum: 0
+                                example: 2
+                            deliveryPersons:
+                                type: integer
+                                minimum: 0
+                                example: 1
+                            orders:
+                                type: integer
+                                minimum: 0
+                                example: 2
+                            deliveries:
+                                type: integer
+                                minimum: 0
+                                example: 1
+
+        responses:
+            "201":
+                description: Datos de prueba insertados correctamente.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                status:
+                                    type: string
+                                    example: success
+                                payload:
+                                    type: object
+                                    properties:
+                                        usersInserted:
+                                            type: integer
+                                            example: 2
+                                        deliveryPersonsInserted:
+                                            type: integer
+                                            example: 1
+                                        ordersInserted:
+                                            type: integer
+                                            example: 2
+                                        deliveriesInserted:
+                                            type: integer
+                                            example: 1
+            "400":
+                description: Cantidad inválida o combinación de cantidades que no permite establecer las relaciones requeridas.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "500":
+                description: Error interno del servidor.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
