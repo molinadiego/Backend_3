@@ -243,6 +243,7 @@ Backend_3/
 │   │   └── errors.dictionary.js
 │   │
 │   ├── middlewares/
+│   │   ├── async-handler.middleware.js
 │   │   ├── error.middleware.js
 │   │   ├── http.middleware.js
 │   │   └── notfound.middleware.js
@@ -605,6 +606,22 @@ define para cada código:
 
 Esto permite mantener respuestas consistentes en toda la aplicación.
 
+### Diccionario completo de errores
+
+| Código                    | HTTP Status | Mensaje                                                        |
+| ------------------------- | ----------: | -------------------------------------------------------------- |
+| `VALIDATION_ERROR`        |         400 | Los datos enviados no son válidos.                             |
+| `USER_NOT_FOUND`          |         404 | No se encontró el usuario solicitado.                          |
+| `ORDER_NOT_FOUND`         |         404 | No se encontró el pedido solicitado.                           |
+| `DELIVERY_NOT_FOUND`      |         404 | No se encontró la entrega solicitada.                          |
+| `INVALID_ORDER_STATUS`    |         400 | El estado indicado no es válido para un pedido.                |
+| `INVALID_DELIVERY_STATUS` |         400 | El estado indicado no es válido para una entrega.              |
+| `DRIVER_NOT_AVAILABLE`    |         409 | El repartidor no está disponible para tomar una nueva entrega. |
+| `INVALID_MOCK_AMOUNT`     |         400 | La cantidad de registros solicitada no es válida.              |
+| `ROUTE_NOT_FOUND`         |         404 | La ruta solicitada no existe.                                  |
+| `INTERNAL_SERVER_ERROR`   |         500 | Error interno del servidor.                                    |
+| `PRODUCT_NOT_FOUND`       |         404 | No se encontró el producto.                                    |
+
 ### AppError
 
 `AppError` representa los errores controlados de la aplicación.
@@ -767,7 +784,7 @@ Respuesta:
 {
     "status": "error",
     "error": "INVALID_MOCK_AMOUNT",
-    "message": "La cantidad de registros a poner debe ser un número positivo."
+    "message": "La cantidad de registros solicitada no es válida."
 }
 ```
 
