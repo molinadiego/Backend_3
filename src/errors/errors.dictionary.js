@@ -39,8 +39,7 @@ export const errorsDictionary = {
 
     [ERRORS_CODES.INVALID_MOCK_AMOUNT]: {
         statusCode: 400,
-        message:
-            "La cantidad de registros a poner debe ser un número positivo.",
+        message: "La cantidad de registros solicitada no es válida.",
     },
 
     [ERRORS_CODES.ROUTE_NOT_FOUND]: {

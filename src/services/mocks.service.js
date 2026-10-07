@@ -14,11 +14,26 @@ const MAX_QUANTITY = 50;
 
 const validateQuantity = (quantity, allowZero = false) => {
     const minimum = allowZero ? 0 : 1;
-    if (!Number.isInteger(quantity) || quantity < minimum) {
-        throw new AppError(ERRORS_CODES.INVALID_MOCK_AMOUNT);
+    const received = quantity;
+
+    const numericQuantity =
+        typeof quantity === "string" && quantity.trim() !== ""
+            ? Number(quantity)
+            : quantity;
+
+    if (
+        !Number.isInteger(numericQuantity) ||
+        numericQuantity < minimum ||
+        numericQuantity > MAX_QUANTITY
+    ) {
+        throw new AppError(ERRORS_CODES.INVALID_MOCK_AMOUNT, undefined, {
+            received,
+            min: minimum,
+            max: MAX_QUANTITY,
+        });
     }
 
-    return Math.min(quantity, MAX_QUANTITY);
+    return numericQuantity;
 };
 
 export class MocksService {
@@ -31,21 +46,26 @@ export class MocksService {
     async generateUsers(quantity = 5) {
         const validQuantity = validateQuantity(quantity);
         const usersGenerated = await generateMany(generateUser, validQuantity);
+
         logger.info("Usuarios generados", {
             cantidad: usersGenerated.length,
         });
+
         return usersGenerated;
     }
 
     async generateDeliveryPersons(quantity = 5) {
         const validQuantity = validateQuantity(quantity);
+
         const deliveryGenerated = await generateMany(
             generateDeliveryPerson,
             validQuantity,
         );
+
         logger.info("Repartidores generados", {
             cantidad: deliveryGenerated.length,
         });
+
         return deliveryGenerated;
     }
 
@@ -57,10 +77,13 @@ export class MocksService {
             validQuantity,
             USER_ROLES.CUSTOMER,
         );
+
         const ordersGenerated = users.map((user) => generateOrder(user));
+
         logger.info("Ordenes generadas.", {
             cantidad: ordersGenerated.length,
         });
+
         return ordersGenerated;
     }
 
@@ -79,15 +102,18 @@ export class MocksService {
         );
 
         const orders = users.map((user) => generateOrder(user));
+
         const deliveriesGenerated = orders.map((order, index) =>
             generateDelivery(
                 order,
                 deliveryPersons[index % deliveryPersons.length],
             ),
         );
+
         logger.info("Deliveries generados.", {
             cantidad: deliveriesGenerated.length,
         });
+
         return deliveriesGenerated;
     }
 
@@ -117,14 +143,29 @@ export class MocksService {
         }
 
         if (validOrdersQty > 0 && validUsersQty === 0) {
-            throw new AppError(ERRORS_CODES.INVALID_MOCK_AMOUNT);
+            throw new AppError(ERRORS_CODES.INVALID_MOCK_AMOUNT, undefined, {
+                received: {
+                    users: usersQty,
+                    orders: ordersQty,
+                },
+                requirement:
+                    "Debe existir al menos un usuario para generar órdenes.",
+            });
         }
 
         if (
             validDeliveriesQty > 0 &&
             (validOrdersQty === 0 || validDeliveryPersonsQty === 0)
         ) {
-            throw new AppError(ERRORS_CODES.INVALID_MOCK_AMOUNT);
+            throw new AppError(ERRORS_CODES.INVALID_MOCK_AMOUNT, undefined, {
+                received: {
+                    deliveryPersons: deliveryPersonsQty,
+                    orders: ordersQty,
+                    deliveries: deliveriesQty,
+                },
+                requirement:
+                    "Debe existir al menos una orden y un repartidor para generar entregas.",
+            });
         }
 
         const rawUsers = await generateMany(

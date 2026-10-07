@@ -1,117 +1,108 @@
+import { asyncHandler } from "../middlewares/async-handler.middleware.js";
+
 export class MocksController {
     constructor(mocksService) {
         this.mocksService = mocksService;
+
+        this.generateUsers = asyncHandler(this.generateUsers.bind(this));
+        this.generateDeliveryPersons = asyncHandler(
+            this.generateDeliveryPersons.bind(this),
+        );
+        this.generateOrders = asyncHandler(this.generateOrders.bind(this));
+        this.generateDeliveries = asyncHandler(
+            this.generateDeliveries.bind(this),
+        );
+        this.seed = asyncHandler(this.seed.bind(this));
     }
 
-    generateUsers = async (req, res, next) => {
-        try {
-            const quantity =
-                req.query.qty !== undefined ? Number(req.query.qty) : undefined;
+    async generateUsers(req, res) {
+        const quantity =
+            req.query.qty !== undefined ? req.query.qty : undefined;
 
-            const users = await this.mocksService.generateUsers(quantity);
+        const users = await this.mocksService.generateUsers(quantity);
 
-            res.json({
-                status: "success",
-                payload: users,
-            });
-        } catch (error) {
-            next(error);
-        }
-    };
+        res.json({
+            status: "success",
+            payload: users,
+        });
+    }
 
-    generateDeliveryPersons = async (req, res, next) => {
-        try {
-            const quantity =
-                req.query.qty !== undefined ? Number(req.query.qty) : undefined;
+    async generateDeliveryPersons(req, res) {
+        const quantity =
+            req.query.qty !== undefined ? req.query.qty : undefined;
 
-            const deliveryPersons =
-                await this.mocksService.generateDeliveryPersons(quantity);
+        const deliveryPersons =
+            await this.mocksService.generateDeliveryPersons(quantity);
 
-            res.json({
-                status: "success",
-                payload: deliveryPersons,
-            });
-        } catch (error) {
-            next(error);
-        }
-    };
+        res.json({
+            status: "success",
+            payload: deliveryPersons,
+        });
+    }
 
-    generateOrders = async (req, res, next) => {
-        try {
-            const quantity =
-                req.query.qty !== undefined ? Number(req.query.qty) : undefined;
+    async generateOrders(req, res) {
+        const quantity =
+            req.query.qty !== undefined ? req.query.qty : undefined;
 
-            const orders = await this.mocksService.generateOrders(quantity);
+        const orders = await this.mocksService.generateOrders(quantity);
 
-            res.json({
-                status: "success",
-                payload: orders,
-            });
-        } catch (error) {
-            next(error);
-        }
-    };
+        res.json({
+            status: "success",
+            payload: orders,
+        });
+    }
 
-    generateDeliveries = async (req, res, next) => {
-        try {
-            const quantity =
-                req.query.qty !== undefined ? Number(req.query.qty) : undefined;
+    async generateDeliveries(req, res) {
+        const quantity =
+            req.query.qty !== undefined ? req.query.qty : undefined;
 
-            const deliveries =
-                await this.mocksService.generateDeliveries(quantity);
+        const deliveries = await this.mocksService.generateDeliveries(quantity);
 
-            res.json({
-                status: "success",
-                payload: deliveries,
-            });
-        } catch (error) {
-            next(error);
-        }
-    };
+        res.json({
+            status: "success",
+            payload: deliveries,
+        });
+    }
 
-    seed = async (req, res, next) => {
-        try {
-            const usersQty =
-                req.query.users !== undefined
-                    ? Number(req.query.users)
-                    : req.body?.users !== undefined
-                      ? Number(req.body.users)
-                      : undefined;
+    async seed(req, res) {
+        const usersQty =
+            req.query.users !== undefined
+                ? req.query.users
+                : req.body?.users !== undefined
+                  ? req.body.users
+                  : undefined;
 
-            const deliveryPersonsQty =
-                req.query.deliveryPersons !== undefined
-                    ? Number(req.query.deliveryPersons)
-                    : req.body?.deliveryPersons !== undefined
-                      ? Number(req.body.deliveryPersons)
-                      : undefined;
+        const deliveryPersonsQty =
+            req.query.deliveryPersons !== undefined
+                ? req.query.deliveryPersons
+                : req.body?.deliveryPersons !== undefined
+                  ? req.body.deliveryPersons
+                  : undefined;
 
-            const ordersQty =
-                req.query.orders !== undefined
-                    ? Number(req.query.orders)
-                    : req.body?.orders !== undefined
-                      ? Number(req.body.orders)
-                      : undefined;
+        const ordersQty =
+            req.query.orders !== undefined
+                ? req.query.orders
+                : req.body?.orders !== undefined
+                  ? req.body.orders
+                  : undefined;
 
-            const deliveriesQty =
-                req.query.deliveries !== undefined
-                    ? Number(req.query.deliveries)
-                    : req.body?.deliveries !== undefined
-                      ? Number(req.body.deliveries)
-                      : undefined;
+        const deliveriesQty =
+            req.query.deliveries !== undefined
+                ? req.query.deliveries
+                : req.body?.deliveries !== undefined
+                  ? req.body.deliveries
+                  : undefined;
 
-            const result = await this.mocksService.seed({
-                usersQty,
-                deliveryPersonsQty,
-                ordersQty,
-                deliveriesQty,
-            });
+        const result = await this.mocksService.seed({
+            usersQty,
+            deliveryPersonsQty,
+            ordersQty,
+            deliveriesQty,
+        });
 
-            res.status(201).json({
-                status: "success",
-                payload: result,
-            });
-        } catch (error) {
-            next(error);
-        }
-    };
+        res.status(201).json({
+            status: "success",
+            payload: result,
+        });
+    }
 }
