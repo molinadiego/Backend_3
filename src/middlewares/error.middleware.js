@@ -4,39 +4,54 @@ import { ERRORS_CODES } from "../errors/errors.codes.js";
 import logger from "../utils/logger.js";
 
 export const errorHandler = (err, req, res, next) => {
-    if (res.headersSent) {
-        return next(err);
-    }
+	if (res.headersSent) {
+		return next(err);
+	}
 
-    const isDevelopment = config.nodeEnv === "development";
+	const isDevelopment = config.nodeEnv === "development";
 
-    if (err instanceof AppError) {
-        logger.warning(err.message, {
-            code: err.code,
-            statusCode: err.statusCode,
-            path: req.originalUrl,
-            method: req.method,
-        });
-        return res.status(err.statusCode).json({
-            status: "error",
-            error: err.code,
-            message: err.message,
-            ...(isDevelopment && err.details ? { details: err.details } : {}),
-        });
-    }
+	if (err instanceof AppError) {
+		logger.warning(err.message, {
+			code: err.code,
+			statusCode: err.statusCode,
+			path: req.originalUrl,
+			method: req.method,
+		});
 
-    logger.error(err.message || "Error inesperado", {
-        stack: err.stack,
-        path: req.originalUrl,
-        method: req.method,
-    });
+		return res.status(err.statusCode).json({
+			status: "error",
+			error: err.code,
+			message: err.message,
+			...(isDevelopment && err.details ? { details: err.details } : {}),
+		});
+	}
 
-    return res.status(500).json({
-        status: "error",
-        error: ERRORS_CODES.INTERNAL_SERVER_ERROR,
-        message: "Error interno del servidor.",
-        ...(isDevelopment
-            ? { details: err.message || "Error inesperado" }
-            : {}),
-    });
+	if (err.name === "CastError" || err.name === "ValidationError") {
+		logger.warning("Los datos enviados no son válidos.", {
+			code: ERRORS_CODES.VALIDATION_ERROR,
+			statusCode: 400,
+			path: req.originalUrl,
+			method: req.method,
+		});
+
+		return res.status(400).json({
+			status: "error",
+			error: ERRORS_CODES.VALIDATION_ERROR,
+			message: "Los datos enviados no son válidos.",
+			...(isDevelopment ? { details: err.message } : {}),
+		});
+	}
+
+	logger.error(err.message || "Error inesperado", {
+		stack: err.stack,
+		path: req.originalUrl,
+		method: req.method,
+	});
+
+	return res.status(500).json({
+		status: "error",
+		error: ERRORS_CODES.INTERNAL_SERVER_ERROR,
+		message: "Error interno del servidor.",
+		...(isDevelopment ? { details: err.message || "Error inesperado" } : {}),
+	});
 };
