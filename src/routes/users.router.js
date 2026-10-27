@@ -1,19 +1,21 @@
 import { Router } from "express";
+import { uploadFile } from "../config/multer.config.js";
+import { uploadErrorHandler } from "../middlewares/upload-error.middleware.js";
 
 export const createUsersRouter = (userController) => {
-    const router = Router();
+	const router = Router();
 
-    router.get("/", (req, res, next) => userController.getAll(req, res, next));
-    router.get("/:id", (req, res, next) =>
-        userController.getById(req, res, next),
-    );
-    router.post("/", (req, res, next) => userController.create(req, res, next));
-    router.put("/:id", (req, res, next) =>
-        userController.update(req, res, next),
-    );
-    router.delete("/:id", (req, res, next) =>
-        userController.delete(req, res, next),
-    );
+	router.get("/", userController.getAll);
+	router.get("/:id", userController.getById);
+	router.post("/", userController.create);
+	router.post(
+		"/:id/documents",
+		uploadFile.single("file"),
+		uploadErrorHandler,
+		userController.uploadDocument,
+	);
+	router.put("/:id", userController.update);
+	router.delete("/:id", userController.delete);
 
-    return router;
+	return router;
 };

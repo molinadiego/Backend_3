@@ -2,7 +2,7 @@
 
 API backend para la gestión de usuarios, productos, órdenes y entregas, desarrollada con **Node.js, Express y MongoDB**.
 
-El proyecto utiliza una arquitectura por capas, inyección de dependencias, generación de datos de prueba mediante mocking y un sistema centralizado de manejo profesional de errores.
+El proyecto utiliza una arquitectura por capas, inyección de dependencias, generación de datos de prueba mediante mocking, manejo centralizado de errores, logging, documentación con Swagger y carga de archivos mediante Multer.
 
 ---
 
@@ -14,14 +14,16 @@ El proyecto utiliza una arquitectura por capas, inyección de dependencias, gene
 - [Mocking](#-mocking)
 - [Endpoints de Mocking](#-endpoints-de-mocking)
 - [Carga de datos de prueba](#-carga-de-datos-de-prueba)
+- [Gestión de archivos](#-gestión-de-archivos)
+- [Validaciones de archivos](#-validaciones-de-archivos)
 - [Manejo profesional de errores](#-manejo-profesional-de-errores)
-- [Respuestas de error](#-respuestas-de-error)
-- [Validación de cantidades](#-validación-de-cantidades)
+- [Logging](#-logging)
+- [Documentación con Swagger](#-documentación-con-swagger)
 - [Relaciones entre entidades](#-relaciones-entre-entidades)
 - [Inyección de dependencias](#-inyección-de-dependencias)
 - [Variables de entorno](#-variables-de-entorno)
-- [Testing](#-testing)
 - [Instalación](#-instalación)
+- [Pruebas automatizadas](#-pruebas-automatizadas)
 - [Pruebas con cURL](#-pruebas-con-curl)
 - [Estado del proyecto](#-estado-del-proyecto)
 
@@ -36,16 +38,19 @@ El proyecto utiliza una arquitectura por capas, inyección de dependencias, gene
 - **Faker**
 - **bcrypt**
 - **dotenv**
-- **JavaScript ES Modules**
+- **Multer**
+- **Winston**
+- **Swagger / OpenAPI**
 - **Mocha**
 - **Chai**
 - **Supertest**
+- **JavaScript ES Modules**
 
 ---
 
 ## 🏗 Arquitectura
 
-ShipNow utiliza una arquitectura por capas que separa las responsabilidades de cada componente:
+ShipNow utiliza una arquitectura por capas que separa las responsabilidades de cada componente.
 
 ```text
 Route
@@ -70,6 +75,8 @@ Cada capa tiene una responsabilidad específica:
 - **Models:** definen los esquemas de Mongoose.
 - **MongoDB:** almacena los datos persistentes.
 
+Los middlewares se encargan de tareas transversales, como la gestión de errores, el procesamiento de archivos y el registro de las peticiones HTTP.
+
 ### Arquitectura del módulo de Mocking
 
 ```text
@@ -86,13 +93,37 @@ Generators / Repositories
 MongoDB
 ```
 
-Los endpoints de generación utilizan los generators sin persistir datos.
+Los endpoints de generación utilizan los generators para producir datos ficticios sin persistirlos.
 
 El endpoint `seed`, en cambio, utiliza los repositories para insertar los datos generados en MongoDB.
+
+### Arquitectura del módulo de carga de archivos
+
+```text
+HTTP Request
+    ↓
+UsersRouter / DeliveriesRouter
+    ↓
+Multer Middleware
+    ↓
+Controller
+    ↓
+Service
+    ↓
+Repository
+    ↓
+MongoDB
+```
+
+Multer procesa los archivos recibidos mediante `multipart/form-data`.
+
+Los archivos se almacenan en el sistema de archivos del servidor y sus metadatos se guardan en MongoDB.
 
 ---
 
 ## 📁 Estructura del proyecto
+
+La siguiente estructura resume los módulos principales del proyecto.
 
 ```text
 Backend_3/
@@ -102,12 +133,15 @@ Backend_3/
 │   │
 │   ├── config/
 │   │   ├── database.js
-│   │   └── env.config.js
+│   │   ├── env.config.js
+│   │   └── multer.config.js
 │   │
 │   ├── constants/
 │   │   └── index.js
 │   │
 │   ├── controllers/
+│   │   ├── deliveries.controller.js
+│   │   ├── logger.controller.js
 │   │   ├── mocks.controller.js
 │   │   ├── orders.controller.js
 │   │   ├── products.controller.js
@@ -115,7 +149,7 @@ Backend_3/
 │   │
 │   ├── docs/
 │   │   ├── swagger.config.js
-│   │   └── *.yaml
+│   │   └── uploads.yaml
 │   │
 │   ├── errors/
 │   │   ├── app.error.js
@@ -123,10 +157,9 @@ Backend_3/
 │   │   └── errors.dictionary.js
 │   │
 │   ├── middlewares/
-│   │   ├── async-handler.middleware.js
 │   │   ├── error.middleware.js
-│   │   ├── http.middleware.js
-│   │   └── notfound.middleware.js
+│   │   ├── notfound.middleware.js
+│   │   └── upload-error.middleware.js
 │   │
 │   ├── mocks/
 │   │   └── generators.js
@@ -144,32 +177,24 @@ Backend_3/
 │   │   └── users.repository.js
 │   │
 │   ├── routes/
+│   │   ├── deliveries.router.js
 │   │   ├── logger.router.js
 │   │   ├── mocks.router.js
 │   │   ├── orders.router.js
 │   │   ├── products.router.js
 │   │   └── users.router.js
 │   │
-│   ├── services/
-│   │   ├── mocks.service.js
-│   │   ├── orders.service.js
-│   │   ├── products.service.js
-│   │   └── users.service.js
-│   │
-│   └── utils/
-│       └── logger.js
+│   └── services/
+│       ├── deliveries.service.js
+│       ├── mocks.service.js
+│       ├── orders.service.js
+│       ├── products.service.js
+│       └── users.service.js
 │
 ├── tests/
-│   ├── logger.test.js
-│   ├── mocks.test.js
-│   ├── orders.test.js
-│   ├── products.test.js
-│   ├── swagger.test.js
-│   └── users.test.js
-│
+├── uploads/
 ├── .env
 ├── .env.example
-├── .env.test
 ├── .gitignore
 ├── package.json
 ├── package-lock.json
@@ -193,15 +218,13 @@ Los generators utilizan:
 - **Faker** para generar datos ficticios.
 - **bcrypt** para generar contraseñas hasheadas.
 - **ObjectId** para establecer relaciones entre entidades.
-- Las constantes definidas en `src/constants/index.js` para roles, estados y prioridades.
+- Las constantes de `src/constants/index.js` para roles, estados y prioridades.
 
 Las cantidades solicitadas están limitadas a un máximo de **50 registros** para evitar cargas excesivas durante las pruebas.
 
----
-
 ## 👤 Usuarios simulados
 
-Los usuarios generados contienen:
+Los usuarios generados contienen campos como:
 
 ```text
 name
@@ -211,39 +234,23 @@ role
 isActive
 ```
 
-Los roles disponibles se encuentran definidos en:
+Los roles se definen mediante las constantes de `USER_ROLES`.
 
-```text
-USER_ROLES
-```
-
-Los usuarios pueden generarse como clientes, administradores u otros roles definidos por el sistema.
-
-Las contraseñas son almacenadas como hashes utilizando `bcrypt`.
-
----
+Las contraseñas se almacenan como hashes generados mediante `bcrypt`.
 
 ## 🛵 Repartidores simulados
 
 Los repartidores son usuarios generados específicamente con el rol:
 
 ```text
-driver
-```
-
-El rol se obtiene de:
-
-```text
 USER_ROLES.DRIVER
 ```
 
-Estos usuarios pueden posteriormente relacionarse con entregas.
-
----
+Estos usuarios pueden relacionarse posteriormente con entregas.
 
 ## 📦 Órdenes simuladas
 
-Las órdenes generadas contienen:
+Las órdenes generadas contienen campos como:
 
 ```text
 userId
@@ -254,17 +261,7 @@ priority
 isActive
 ```
 
-Los estados utilizan las constantes definidas en:
-
-```text
-ORDER_STATUS
-```
-
-Las prioridades utilizan:
-
-```text
-DELIVERY_PRIORITY
-```
+Los estados y prioridades utilizan las constantes definidas en el proyecto.
 
 Cada orden mantiene una relación con un usuario:
 
@@ -272,11 +269,9 @@ Cada orden mantiene una relación con un usuario:
 Order.userId → User._id
 ```
 
----
-
 ## 🚚 Entregas simuladas
 
-Las entregas contienen:
+Las entregas contienen campos como:
 
 ```text
 order
@@ -290,36 +285,23 @@ isActive
 Las relaciones principales son:
 
 ```text
-Delivery.order
-      ↓
-Order._id
+Delivery.order → Order._id
+Delivery.deliveryPerson → User._id
 ```
 
-y:
-
-```text
-Delivery.deliveryPerson
-      ↓
-User._id
-```
-
-El usuario relacionado con `deliveryPerson` posee el rol:
-
-```text
-driver
-```
+El usuario asociado a `deliveryPerson` debe tener el rol `driver`.
 
 ---
 
-# 🔌 Endpoints de Mocking
+## 🔌 Endpoints de Mocking
 
-Todos los endpoints de mocking se encuentran bajo:
+Los endpoints de mocking se encuentran bajo:
 
 ```text
 /api/mocks
 ```
 
-## Generar usuarios
+### Generar usuarios
 
 ```http
 GET /api/mocks/users?qty=2
@@ -327,15 +309,11 @@ GET /api/mocks/users?qty=2
 
 Genera usuarios ficticios sin almacenarlos en MongoDB.
 
-Ejemplo:
-
 ```bash
 curl "http://localhost:8080/api/mocks/users?qty=2"
 ```
 
----
-
-## Generar repartidores
+### Generar repartidores
 
 ```http
 GET /api/mocks/delivery-persons?qty=2
@@ -343,43 +321,29 @@ GET /api/mocks/delivery-persons?qty=2
 
 Genera usuarios con el rol `driver` sin almacenarlos en MongoDB.
 
-Ejemplo:
-
 ```bash
 curl "http://localhost:8080/api/mocks/delivery-persons?qty=2"
 ```
 
----
-
-## Generar órdenes
+### Generar órdenes
 
 ```http
 GET /api/mocks/orders?qty=2
 ```
 
-Genera órdenes ficticias relacionadas con usuarios generados en memoria.
-
-Los datos generados no se almacenan en MongoDB.
-
-Ejemplo:
+Genera órdenes ficticias relacionadas con usuarios generados en memoria. Los datos no se persisten en MongoDB.
 
 ```bash
 curl "http://localhost:8080/api/mocks/orders?qty=2"
 ```
 
----
-
-## Generar entregas
+### Generar entregas
 
 ```http
 GET /api/mocks/deliveries?qty=2
 ```
 
-Genera entregas relacionadas con órdenes y repartidores.
-
-Las relaciones utilizan identificadores válidos de MongoDB.
-
-Ejemplo:
+Genera entregas relacionadas con órdenes y repartidores ficticios.
 
 ```bash
 curl "http://localhost:8080/api/mocks/deliveries?qty=2"
@@ -387,7 +351,7 @@ curl "http://localhost:8080/api/mocks/deliveries?qty=2"
 
 ---
 
-# 🌱 Carga de datos de prueba
+## 🌱 Carga de datos de prueba
 
 El endpoint:
 
@@ -395,9 +359,9 @@ El endpoint:
 POST /api/mocks/seed
 ```
 
-permite generar e insertar datos controlados directamente en MongoDB.
+permite generar e insertar datos de prueba directamente en MongoDB.
 
-Los parámetros disponibles son:
+Parámetros:
 
 | Parámetro         | Descripción                  | Valor por defecto |
 | ----------------- | ---------------------------- | ----------------: |
@@ -406,7 +370,7 @@ Los parámetros disponibles son:
 | `orders`          | Órdenes a insertar           |                10 |
 | `deliveries`      | Entregas a insertar          |                 5 |
 
-Cada cantidad admite valores entre `0` y `50`.
+Cada cantidad admite valores entre `0` y `50`, sujetos a las validaciones de las relaciones entre entidades.
 
 ### Ejemplo
 
@@ -414,7 +378,7 @@ Cada cantidad admite valores entre `0` y `50`.
 curl -X POST "http://localhost:8080/api/mocks/seed?users=2&deliveryPersons=1&orders=2&deliveries=1"
 ```
 
-Respuesta:
+Una respuesta exitosa puede tener la siguiente estructura:
 
 ```json
 {
@@ -428,11 +392,132 @@ Respuesta:
 }
 ```
 
+Las cantidades efectivamente insertadas dependen de los parámetros enviados.
+
+---
+
+# 📎 Gestión de archivos
+
+ShipNow permite cargar documentos de usuarios y licencias de conducir, así como comprobantes de entrega.
+
+La carga de archivos se implementa mediante **Multer**. Las rutas reciben los archivos utilizando `multipart/form-data`.
+
+Los archivos se almacenan en el sistema de archivos del servidor. MongoDB conserva los metadatos asociados, no el contenido binario del archivo.
+
+## 📂 Directorios de almacenamiento
+
+Los archivos se organizan en los siguientes directorios:
+
+```text
+uploads/
+├── documents/
+├── licenses/
+└── proofs/
+```
+
+| Directorio           | Uso                              |
+| -------------------- | -------------------------------- |
+| `uploads/documents/` | Documentos generales de usuarios |
+| `uploads/licenses/`  | Licencias de conducir            |
+| `uploads/proofs/`    | Comprobantes de entrega          |
+
+Los nombres de archivo se generan con identificadores únicos para reducir el riesgo de colisiones.
+
+Los directorios se crean cuando son necesarios.
+
+Los archivos cargados se excluyen del control de versiones mediante `.gitignore`. No se deben subir documentos personales, licencias ni comprobantes reales al repositorio.
+
+## 📄 Documentos de usuario
+
+Endpoint:
+
+```http
+POST /api/users/:id/documents
+```
+
+Permite asociar un documento a un usuario existente.
+
+El formulario debe enviarse como `multipart/form-data` e incluir:
+
+- `file`: archivo que se va a cargar.
+- `documentType`: tipo de documento admitido por la API.
+
+Los tipos de documento contemplados son:
+
+```text
+user_document
+driver_license
+```
+
+Las licencias de conducir están reservadas para usuarios con el rol `driver`.
+
+## 🚚 Comprobantes de entrega
+
+Endpoint:
+
+```http
+POST /api/deliveries/:id/proof
+```
+
+Permite cargar un comprobante para una entrega existente.
+
+El formulario debe enviarse como `multipart/form-data` e incluir el campo:
+
+```text
+file
+```
+
+La carga se asocia a la entrega identificada en la URL.
+
+---
+
+## 🛡 Validaciones de archivos
+
+La configuración de Multer se encuentra en:
+
+```text
+src/config/multer.config.js
+```
+
+### Tipos de archivo permitidos
+
+| Formato | MIME type         |
+| ------- | ----------------- |
+| PDF     | `application/pdf` |
+| JPEG    | `image/jpeg`      |
+| PNG     | `image/png`       |
+| WebP    | `image/webp`      |
+
+### Límites de carga
+
+- Tamaño máximo por archivo: **5 MB**.
+- Cantidad máxima de archivos por petición: **1**.
+- Los archivos se reciben mediante `multipart/form-data`.
+- Los tipos MIME no admitidos se rechazan.
+- Los errores de Multer se traducen a errores controlados de la aplicación.
+- Si falla una operación de negocio después de guardar el archivo, se intenta eliminar el archivo generado.
+
+La validación del tipo MIME es una medida básica de control. Para un entorno productivo también conviene verificar el contenido real de los archivos, limitar el acceso a documentos sensibles y definir políticas de retención y eliminación.
+
+### Errores habituales
+
+| Situación                             | Código de error         |
+| ------------------------------------- | ----------------------- |
+| No se envía ningún archivo            | `FILE_REQUIRED`         |
+| Tipo de archivo no admitido           | `INVALID_FILE_TYPE`     |
+| Archivo superior al límite            | `FILE_TOO_LARGE`        |
+| Campo inesperado o exceso de archivos | `UNEXPECTED_FILE_FIELD` |
+| Usuario inexistente                   | `USER_NOT_FOUND`        |
+| Entrega inexistente                   | `DELIVERY_NOT_FOUND`    |
+| Tipo de documento inválido            | `INVALID_DOCUMENT_TYPE` |
+
+Los códigos y mensajes definitivos son los definidos en los archivos de errores del proyecto.
+
 ---
 
 # ⚠️ Manejo profesional de errores
 
-ShipNow utiliza un sistema centralizado para manejar los errores de la aplicación.
+ShipNow utiliza un sistema centralizado para gestionar los errores de la aplicación.
 
 Los errores se definen mediante tres componentes:
 
@@ -446,27 +531,34 @@ AppError
 error.middleware.js
 ```
 
-### Códigos de error
+## Códigos de error
 
-Los códigos se encuentran centralizados en:
+Los códigos se centralizan en:
 
 ```text
 src/errors/errors.codes.js
 ```
 
-Ejemplos:
+Entre los códigos utilizados por los módulos del proyecto se encuentran:
 
 ```text
 VALIDATION_ERROR
 USER_NOT_FOUND
 ORDER_NOT_FOUND
 PRODUCT_NOT_FOUND
+DELIVERY_NOT_FOUND
 INVALID_MOCK_AMOUNT
+FILE_REQUIRED
+INVALID_FILE_TYPE
+FILE_TOO_LARGE
+UNEXPECTED_FILE_FIELD
 ROUTE_NOT_FOUND
 INTERNAL_SERVER_ERROR
 ```
 
-### Diccionario de errores
+La lista exacta depende de los códigos definidos en el proyecto.
+
+## Diccionario de errores
 
 El archivo:
 
@@ -474,16 +566,16 @@ El archivo:
 src/errors/errors.dictionary.js
 ```
 
-define para cada código:
+asocia los códigos de error con información como:
 
-- HTTP status code.
-- Mensaje que recibirá el cliente.
+- Código de estado HTTP.
+- Mensaje destinado al cliente.
 
 Esto permite mantener respuestas consistentes en toda la aplicación.
 
-### AppError
+## AppError
 
-`AppError` representa los errores controlados de la aplicación.
+`AppError` representa errores controlados de la aplicación.
 
 Por ejemplo:
 
@@ -491,11 +583,9 @@ Por ejemplo:
 throw new AppError(ERRORS_CODES.USER_NOT_FOUND);
 ```
 
-El Service detecta el problema, pero **no construye la respuesta HTTP**.
+Los services identifican los problemas de negocio, pero no construyen directamente las respuestas HTTP de error.
 
-El error continúa su recorrido hasta el middleware global.
-
-### Middleware global
+## Middleware global
 
 El archivo:
 
@@ -503,9 +593,9 @@ El archivo:
 src/middlewares/error.middleware.js
 ```
 
-es el encargado de transformar los errores en respuestas HTTP uniformes.
+transforma los errores en respuestas HTTP uniformes.
 
-El flujo es:
+El flujo general es:
 
 ```text
 Service
@@ -514,20 +604,16 @@ AppError
    ↓
 Controller
    ↓
-next(error)
-   ↓
-errorHandler
+Middleware global
    ↓
 HTTP Response
 ```
 
-Los Controllers no contienen respuestas específicas para errores de negocio.
+Los controllers delegan la gestión de los errores al middleware centralizado.
 
----
+## Respuestas de error
 
-# 📤 Respuestas de error
-
-Todas las respuestas de error utilizan una estructura uniforme:
+Las respuestas de error siguen una estructura uniforme:
 
 ```json
 {
@@ -537,7 +623,7 @@ Todas las respuestas de error utilizan una estructura uniforme:
 }
 ```
 
-Por ejemplo, si se solicita un usuario inexistente:
+Ejemplo:
 
 ```json
 {
@@ -547,50 +633,23 @@ Por ejemplo, si se solicita un usuario inexistente:
 }
 ```
 
-### Información de debugging
+Durante el desarrollo, ciertos errores pueden incluir detalles técnicos adicionales. En producción, estos detalles deben limitarse para evitar exponer información interna.
 
-Durante el desarrollo, algunos errores pueden incluir:
+## Errores de rutas
 
-```json
-{
-	"status": "error",
-	"error": "ERROR_CODE",
-	"message": "Mensaje claro para el cliente",
-	"details": "Información adicional para debugging"
-}
-```
-
-La información técnica se limita al entorno de desarrollo para evitar exponer detalles internos en producción.
-
----
-
-# 🚫 Errores de rutas
-
-Las rutas inexistentes son manejadas por:
+Las rutas inexistentes se gestionan mediante:
 
 ```text
 src/middlewares/notfound.middleware.js
 ```
 
-Por ejemplo:
+Ejemplo:
 
 ```bash
 curl -i http://localhost:8080/api/loquesea
 ```
 
-Respuesta:
-
-```json
-{
-	"status": "error",
-	"error": "ROUTE_NOT_FOUND",
-	"message": "La ruta solicitada no existe."
-}
-```
-
-Una ruta inexistente es diferente de un recurso inexistente.
-
-Por ejemplo:
+Una ruta inexistente es diferente de un recurso inexistente:
 
 ```text
 /api/loquesea
@@ -598,7 +657,7 @@ Por ejemplo:
 ROUTE_NOT_FOUND
 ```
 
-mientras que:
+En cambio, una ruta válida que busca un usuario inexistente puede producir:
 
 ```text
 /api/users/:id
@@ -608,66 +667,35 @@ USER_NOT_FOUND
 
 ---
 
-# 🔢 Validación de cantidades
+## 🪵 Logging
 
-Las cantidades utilizadas por el sistema de mocking se validan en `MocksService`.
+ShipNow incluye logging para facilitar el seguimiento de eventos y errores durante el desarrollo.
 
-Las cantidades deben ser:
+El registro de eventos permite investigar problemas sin mezclar la lógica de logging con la lógica de negocio.
 
-- números enteros;
-- no negativos para `seed`;
-- mayores que cero para los endpoints de generación;
-- menores o iguales al límite establecido.
+Los mensajes registrados deben evitar contraseñas, tokens, credenciales y contenido sensible de los archivos cargados.
 
-El límite máximo actual es:
+---
 
-```text
-50 registros
-```
+## 📚 Documentación con Swagger
 
-Los valores inválidos generan:
+La API dispone de documentación basada en Swagger / OpenAPI.
+
+La documentación del módulo de carga de archivos se encuentra en:
 
 ```text
-INVALID_MOCK_AMOUNT
+src/docs/uploads.yaml
 ```
 
-Ejemplo:
+Incluye la descripción de los endpoints de carga, los campos de los formularios, los tipos de archivo admitidos y los límites establecidos.
 
-```bash
-curl -i "http://localhost:8080/api/mocks/users?qty=-5"
-```
-
-Respuesta:
-
-```json
-{
-	"status": "error",
-	"error": "INVALID_MOCK_AMOUNT",
-	"message": "La cantidad de registros solicitada no es válida."
-}
-```
-
-También se rechazan cantidades superiores al máximo:
-
-```bash
-curl -i "http://localhost:8080/api/mocks/users?qty=51"
-```
-
-Respuesta:
-
-```text
-400 Bad Request
-```
-
-```text
-INVALID_MOCK_AMOUNT
-```
+Para consultar la documentación, inicia el servidor y abre la ruta de Swagger configurada en la aplicación. La URL exacta depende de la configuración del proyecto.
 
 ---
 
 # 🔗 Relaciones entre entidades
 
-El sistema mantiene las siguientes relaciones:
+El sistema mantiene relaciones entre usuarios, órdenes y entregas.
 
 ```text
 User
@@ -675,15 +703,19 @@ User
   └── Order.userId
           │
           └── Delivery.order
+```
 
+El repartidor se relaciona con la entrega mediante:
 
-User
-(role: driver)
+```text
+User (role: driver)
   │
   └── Delivery.deliveryPerson
 ```
 
-Los identificadores utilizados para establecer las relaciones corresponden a `ObjectId` de MongoDB.
+Los identificadores utilizados para establecer las relaciones corresponden a identificadores de MongoDB.
+
+Los servicios de la aplicación validan las relaciones requeridas antes de crear determinados registros.
 
 ---
 
@@ -695,7 +727,7 @@ Las dependencias principales se instancian desde:
 src/app.js
 ```
 
-Los repositories reciben sus respectivos modelos:
+Los repositories reciben sus modelos:
 
 ```text
 Repository
@@ -733,17 +765,13 @@ UserController
 UsersRouter
 ```
 
-Este enfoque permite mantener las responsabilidades separadas y facilita reemplazar implementaciones durante las pruebas.
+Este enfoque mantiene separadas las responsabilidades y facilita probar los componentes de forma aislada.
 
 ---
 
 # 🔐 Variables de entorno
 
-Las variables de entorno de desarrollo se almacenan en:
-
-```text
-.env
-```
+Las variables de entorno se almacenan en un archivo `.env` ubicado en la raíz del proyecto.
 
 Ejemplo:
 
@@ -751,18 +779,11 @@ Ejemplo:
 PORT=8080
 MONGODB_URI=mongodb://your-mongodb-url
 NODE_ENV=development
-JWT_SECRET=your-secret
 ```
 
-Para el entorno de testing se utiliza:
+El archivo `.env` puede contener información sensible y **no debe subirse al repositorio**.
 
-```text
-.env.test
-```
-
-Este archivo utiliza una configuración independiente para las pruebas y no debe subirse al repositorio.
-
-Para facilitar la configuración se incluye:
+Para facilitar la configuración se incluye un archivo de ejemplo:
 
 ```text
 .env.example
@@ -774,197 +795,9 @@ Ejemplo:
 PORT=8080
 MONGODB_URI=
 NODE_ENV=development
-JWT_SECRET=
 ```
 
-Los archivos `.env` y `.env.test` contienen información sensible y **no deben subirse al repositorio**.
-
----
-
-# 🧪 Testing
-
-ShipNow cuenta con una suite de pruebas funcionales utilizando:
-
-- **Mocha** como framework de testing.
-- **Chai** para las aserciones.
-- **Supertest** para realizar peticiones HTTP contra la aplicación Express.
-
-Las pruebas utilizan un entorno independiente mediante:
-
-```text
-NODE_ENV=test
-```
-
-y cargan las variables desde:
-
-```text
-.env.test
-```
-
-Esto permite ejecutar las pruebas sobre una base de datos separada de la utilizada durante el desarrollo.
-
----
-
-## ⚙️ Configuración del entorno de testing
-
-Cuando se ejecuta:
-
-```bash
-npm test
-```
-
-el proyecto establece automáticamente:
-
-```text
-NODE_ENV=test
-```
-
-El archivo de configuración selecciona entonces:
-
-```text
-.env.test
-```
-
-La aplicación se importa directamente desde:
-
-```text
-src/app.js
-```
-
-mientras que:
-
-```text
-src/server.js
-```
-
-se encarga únicamente de iniciar la conexión con MongoDB y levantar el servidor HTTP.
-
-Esta separación permite ejecutar Supertest sobre la aplicación sin necesidad de abrir manualmente un puerto durante los tests.
-
----
-
-## ▶️ Ejecución de los tests
-
-Para ejecutar toda la suite:
-
-```bash
-npm test
-```
-
-También es posible ejecutar una suite específica utilizando `grep`.
-
-Ejemplo:
-
-```bash
-npm test -- --grep "Users API"
-```
-
-```bash
-npm test -- --grep "Orders API"
-```
-
-```bash
-npm test -- --grep "Products API"
-```
-
-```bash
-npm test -- --grep "Mocks API"
-```
-
-```bash
-npm test -- --grep "Logger API"
-```
-
-```bash
-npm test -- --grep "Swagger API"
-```
-
----
-
-## 📁 Organización de los tests
-
-Los tests se encuentran separados por módulo:
-
-```text
-tests/
-├── logger.test.js
-├── mocks.test.js
-├── orders.test.js
-├── products.test.js
-├── swagger.test.js
-└── users.test.js
-```
-
-Cada archivo contiene pruebas relacionadas con un recurso específico de la API.
-
----
-
-## ✅ Cobertura actual
-
-La suite funcional verifica respuestas exitosas y errores controlados.
-
-Actualmente se cuenta con:
-
-```text
-Logger API       → 1 test
-Mocks API        → 14 tests
-Orders API       → 9 tests
-Products API     → 9 tests
-Swagger API      → 1 test
-Users API        → 11 tests
---------------------------------
-Total            → 45 tests
-```
-
-Los tests verifican:
-
-- códigos HTTP;
-- estructura de las respuestas;
-- propiedades esperadas;
-- creación de recursos;
-- obtención de recursos;
-- actualización de recursos;
-- eliminación de recursos;
-- recursos inexistentes;
-- datos incompletos;
-- identificadores inválidos;
-- estados inválidos;
-- cantidades inválidas de mocking;
-- rutas inexistentes;
-- generación de logs;
-- acceso a Swagger.
-
----
-
-## 🧹 Limpieza de datos
-
-Los tests que generan información persistente utilizan hooks de Mocha para eliminar los datos creados durante las pruebas.
-
-Se utilizan:
-
-```text
-before()
-afterEach()
-after()
-```
-
-El objetivo es que la suite pueda ejecutarse repetidamente sin depender de datos generados manualmente durante una ejecución anterior.
-
-Los tests de mocking realizan limpieza de las colecciones utilizadas por el proceso de seed.
-
----
-
-## 🔁 Repetibilidad
-
-La suite está diseñada para poder ejecutarse nuevamente sin realizar una limpieza manual de la base de datos.
-
-El comando:
-
-```bash
-npm test
-```
-
-debe finalizar correctamente y permitir una segunda ejecución consecutiva utilizando el mismo entorno de testing.
+Utiliza los nombres de variables definidos en la configuración real de la aplicación.
 
 ---
 
@@ -990,21 +823,7 @@ npm install
 
 ## 4. Configurar variables de entorno
 
-Crear:
-
-```text
-.env
-```
-
-en la raíz del proyecto.
-
-Para ejecutar los tests también debe existir:
-
-```text
-.env.test
-```
-
-Completar las variables necesarias con los valores correspondientes.
+Crea o completa el archivo `.env` en la raíz del proyecto con las variables necesarias y una URI válida de MongoDB.
 
 ## 5. Iniciar el servidor
 
@@ -1012,23 +831,60 @@ Completar las variables necesarias con los valores correspondientes.
 npm run dev
 ```
 
-El servidor se ejecutará en el puerto configurado en:
-
-```text
-PORT
-```
+El servidor se ejecutará en el puerto configurado mediante `PORT`.
 
 ---
 
-# 🧪 Pruebas con CURL
+# 🧪 Pruebas automatizadas
 
-Con el servidor iniciado en:
+El proyecto utiliza herramientas de testing como:
+
+- **Mocha** para ejecutar las pruebas.
+- **Chai** para realizar aserciones.
+- **Supertest** para probar endpoints HTTP.
+
+Para ejecutar la suite:
+
+```bash
+npm test
+```
+
+Las pruebas abarcan los módulos de la aplicación, incluyendo mocking, usuarios, productos, órdenes, documentación y carga de archivos.
+
+En la última ejecución comunicada, la suite finalizó con:
+
+```text
+55 passing
+```
+
+Este resultado corresponde a esa ejecución y puede cambiar cuando se incorporen nuevas pruebas o modificaciones.
+
+### Escenarios de carga de archivos
+
+Las pruebas del módulo de uploads cubren escenarios como:
+
+- Carga de un documento de usuario.
+- Petición sin archivo.
+- Tipo de documento inválido.
+- Tipo MIME no admitido.
+- Archivo que supera el límite de tamaño.
+- Carga de un comprobante de entrega.
+- Entrega inexistente.
+- Aceptación de WebP.
+- Restricción de licencias para usuarios que no son repartidores.
+- Usuario inexistente.
+
+---
+
+# 🧪 Pruebas con cURL
+
+Los siguientes ejemplos suponen que el servidor está ejecutándose en:
 
 ```text
 http://localhost:8080
 ```
 
-se pueden realizar las siguientes pruebas.
+Reemplaza los identificadores de ejemplo por identificadores reales cuando corresponda.
 
 ### Ruta inexistente
 
@@ -1036,17 +892,7 @@ se pueden realizar las siguientes pruebas.
 curl -i http://localhost:8080/api/loquesea
 ```
 
-Esperado:
-
-```text
-404 Not Found
-```
-
-```text
-ROUTE_NOT_FOUND
-```
-
----
+Esperado: error de ruta no encontrada.
 
 ### Usuario inexistente
 
@@ -1054,35 +900,15 @@ ROUTE_NOT_FOUND
 curl -i http://localhost:8080/api/users/507f1f77bcf86cd799439011
 ```
 
-Esperado:
+Esperado: error de usuario no encontrado, si la ruta está implementada de esa manera.
 
-```text
-404 Not Found
-```
-
-```text
-USER_NOT_FOUND
-```
-
----
-
-### Pedido inexistente
+### Orden inexistente
 
 ```bash
 curl -i http://localhost:8080/api/orders/507f1f77bcf86cd799439011
 ```
 
-Esperado:
-
-```text
-404 Not Found
-```
-
-```text
-ORDER_NOT_FOUND
-```
-
----
+Esperado: error de orden no encontrada, si la ruta está implementada de esa manera.
 
 ### Producto inexistente
 
@@ -1090,17 +916,7 @@ ORDER_NOT_FOUND
 curl -i http://localhost:8080/api/products/507f1f77bcf86cd799439011
 ```
 
-Esperado:
-
-```text
-404 Not Found
-```
-
-```text
-PRODUCT_NOT_FOUND
-```
-
----
+Esperado: error de producto no encontrado, si la ruta está implementada de esa manera.
 
 ### Cantidad negativa
 
@@ -1108,17 +924,7 @@ PRODUCT_NOT_FOUND
 curl -i "http://localhost:8080/api/mocks/users?qty=-5"
 ```
 
-Esperado:
-
-```text
-400 Bad Request
-```
-
-```text
-INVALID_MOCK_AMOUNT
-```
-
----
+Esperado: error de validación de cantidad.
 
 ### Cantidad no numérica
 
@@ -1126,17 +932,7 @@ INVALID_MOCK_AMOUNT
 curl -i "http://localhost:8080/api/mocks/users?qty=abc"
 ```
 
-Esperado:
-
-```text
-400 Bad Request
-```
-
-```text
-INVALID_MOCK_AMOUNT
-```
-
----
+Esperado: error de validación de cantidad.
 
 ### Cantidad decimal
 
@@ -1144,53 +940,7 @@ INVALID_MOCK_AMOUNT
 curl -i "http://localhost:8080/api/mocks/users?qty=2.5"
 ```
 
-Esperado:
-
-```text
-400 Bad Request
-```
-
-```text
-INVALID_MOCK_AMOUNT
-```
-
----
-
-### Seed con relaciones inválidas
-
-No se pueden generar órdenes sin usuarios:
-
-```bash
-curl -i -X POST "http://localhost:8080/api/mocks/seed?users=0&orders=5"
-```
-
-Esperado:
-
-```text
-400 Bad Request
-```
-
-```text
-INVALID_MOCK_AMOUNT
-```
-
-Tampoco se pueden generar entregas sin órdenes o repartidores:
-
-```bash
-curl -i -X POST "http://localhost:8080/api/mocks/seed?users=2&deliveryPersons=0&orders=2&deliveries=2"
-```
-
-Esperado:
-
-```text
-400 Bad Request
-```
-
-```text
-INVALID_MOCK_AMOUNT
-```
-
----
+Esperado: error de validación de cantidad.
 
 ### Seed válido
 
@@ -1198,46 +948,73 @@ INVALID_MOCK_AMOUNT
 curl -i -X POST "http://localhost:8080/api/mocks/seed?users=2&deliveryPersons=1&orders=2&deliveries=1"
 ```
 
-Esperado:
+Esperado: respuesta exitosa con las cantidades insertadas, siempre que se cumplan las validaciones y la base de datos esté disponible.
 
-```text
-201 Created
+### Cargar un documento de usuario
+
+```bash
+curl -X POST "http://localhost:8080/api/users/USER_ID/documents" \
+  -F "documentType=user_document" \
+  -F "file=@./documento.pdf"
 ```
 
-con la cantidad de registros insertados.
+Reemplaza `USER_ID` por el identificador de un usuario existente y `./documento.pdf` por la ruta local de un archivo PDF válido.
+
+### Cargar una licencia de conducir
+
+```bash
+curl -X POST "http://localhost:8080/api/users/DRIVER_ID/documents" \
+  -F "documentType=driver_license" \
+  -F "file=@./licencia.pdf"
+```
+
+Reemplaza `DRIVER_ID` por el identificador de un usuario existente con el rol `driver`.
+
+### Cargar un comprobante de entrega
+
+```bash
+curl -X POST "http://localhost:8080/api/deliveries/DELIVERY_ID/proof" \
+  -F "file=@./comprobante.jpg"
+```
+
+Reemplaza `DELIVERY_ID` por el identificador de una entrega existente y `./comprobante.jpg` por la ruta local de un archivo válido.
 
 ---
 
 # 📌 Estado del proyecto
 
-ShipNow continúa su desarrollo sobre una única estructura de proyecto.
+ShipNow continúa su desarrollo sobre una estructura de proyecto que separa las responsabilidades por capas.
 
-Actualmente cuenta con:
+Entre las funcionalidades implementadas se encuentran:
 
 - Arquitectura por capas.
 - Inyección de dependencias.
 - Repositories para abstraer el acceso a datos.
-- Servicios con lógica de negocio.
+- Services con lógica de negocio.
 - Controllers y routers separados.
 - Generación de datos de prueba mediante Faker.
 - Contraseñas simuladas hasheadas mediante bcrypt.
 - Usuarios, repartidores, órdenes y entregas.
-- Relaciones entre entidades mediante `ObjectId`.
-- Endpoint de seed para carga controlada en MongoDB.
+- Relaciones entre entidades mediante identificadores de MongoDB.
+- Endpoint de seed para carga controlada de datos en MongoDB.
 - Validación de cantidades de mocking.
 - Errores de dominio personalizados mediante `AppError`.
 - Diccionario centralizado de errores.
 - Códigos de error centralizados.
 - Middleware global para manejo de errores.
 - Respuestas de error HTTP uniformes.
-- Manejo diferenciado de errores controlados e inesperados.
 - Middleware para rutas inexistentes.
 - Configuración mediante variables de entorno.
-- Documentación de API mediante Swagger.
-- Logging mediante Winston.
-- Suite de testing funcional con Mocha, Chai y Supertest.
-- Entorno independiente para testing.
-- Limpieza automática de datos de prueba.
-- **45 tests funcionales pasando correctamente.**
+- Logging para facilitar el diagnóstico.
+- Documentación de API mediante Swagger / OpenAPI.
+- Carga de documentos de usuarios.
+- Carga de licencias de conducir para repartidores.
+- Carga de comprobantes de entrega.
+- Validación de tipos de archivo y tamaño máximo.
+- Gestión centralizada de errores de Multer.
+- Limpieza de archivos ante determinados fallos de negocio.
+- Pruebas automatizadas con Mocha, Chai y Supertest.
+
+La suite de pruebas registró **55 pruebas exitosas** en la última ejecución compartida.
 
 El proyecto utiliza Git para conservar el historial de las diferentes etapas de desarrollo.

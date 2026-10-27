@@ -1,0 +1,111 @@
+paths:
+  /api/users/{id}/documents:
+    post:
+      summary: Cargar un documento de usuario
+      description: |
+        Carga un documento asociado a un usuario existente.
+        Los tipos admitidos son user_document y driver_license.
+        Las licencias de conducir solo pueden asociarse a usuarios con rol driver.
+        Se aceptan PDF, JPEG, PNG y WebP de hasta 5 MB.
+      tags:
+        - Users
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID del usuario
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - documentType
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Archivo PDF, JPEG, PNG o WebP de hasta 5 MB
+                documentType:
+                  type: string
+                  enum:
+                    - user_document
+                    - driver_license
+                  description: Tipo de documento
+      responses:
+        "200":
+          description: Documento cargado correctamente
+        "400":
+          description: |
+            Archivo faltante, tipo de archivo inválido, tamaño excedido,
+            campo incorrecto o tipo de documento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Usuario inexistente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error al guardar el documento
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/deliveries/{id}/proof:
+    post:
+      summary: Cargar un comprobante de entrega
+      description: |
+        Carga un comprobante asociado a una entrega existente.
+        Se admiten PDF, JPEG, PNG y WebP de hasta 5 MB.
+      tags:
+        - Deliveries
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID de la entrega
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Archivo que acredita la entrega
+      responses:
+        "200":
+          description: Comprobante cargado correctamente
+        "400":
+          description: Archivo faltante, tipo inválido, tamaño excedido o campo incorrecto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Entrega inexistente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error al guardar el comprobante
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
