@@ -29,6 +29,9 @@ describe("Mocks API", () => {
 		expect(response.body.status).to.equal("success");
 		expect(response.body.payload).to.be.an("array");
 		expect(response.body.payload).to.have.lengthOf(2);
+		expect(
+			response.body.payload.every((user) => !Object.hasOwn(user, "password")),
+		).to.equal(true);
 	});
 
 	it("debería generar repartidores correctamente", async () => {
@@ -40,6 +43,9 @@ describe("Mocks API", () => {
 		expect(response.body.status).to.equal("success");
 		expect(response.body.payload).to.be.an("array");
 		expect(response.body.payload).to.have.lengthOf(2);
+		expect(
+			response.body.payload.every((user) => !Object.hasOwn(user, "password")),
+		).to.equal(true);
 	});
 
 	it("debería generar órdenes correctamente", async () => {

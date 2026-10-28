@@ -1,5 +1,7 @@
 import { asyncHandler } from "../middlewares/async-handler.middleware.js";
 
+const withoutPassword = ({ password, ...user }) => user;
+
 export class MocksController {
     constructor(mocksService) {
         this.mocksService = mocksService;
@@ -23,7 +25,7 @@ export class MocksController {
 
         res.json({
             status: "success",
-            payload: users,
+            payload: users.map(withoutPassword),
         });
     }
 
@@ -36,7 +38,7 @@ export class MocksController {
 
         res.json({
             status: "success",
-            payload: deliveryPersons,
+            payload: deliveryPersons.map(withoutPassword),
         });
     }
 

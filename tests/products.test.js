@@ -36,6 +36,7 @@ describe("Products API", () => {
 		expect(response.status).to.equal(404);
 		expect(response.body.status).to.equal("error");
 		expect(response.body.error).to.equal("PRODUCT_NOT_FOUND");
+		expect(response.body.message).to.equal("No se encontró el producto.");
 	});
 
 	it("debería responder un error de validación cuando el ID es inválido", async () => {
@@ -44,6 +45,7 @@ describe("Products API", () => {
 		expect(response.status).to.equal(400);
 		expect(response.body.status).to.equal("error");
 		expect(response.body.error).to.equal("VALIDATION_ERROR");
+		expect(response.body.message).to.equal("Los datos enviados no son válidos.");
 	});
 
 	it("debería crear un producto correctamente", async () => {
@@ -71,9 +73,10 @@ describe("Products API", () => {
 		expect(response.status).to.equal(400);
 		expect(response.body.status).to.equal("error");
 		expect(response.body.error).to.equal("VALIDATION_ERROR");
+		expect(response.body.message).to.equal("Los datos enviados no son válidos.");
 	});
 
-	it("debería responder un error de validación cuando el stock es negativo", async () => {
+	it("debería responder un error de validación cuando el stock es negativo al crear un producto", async () => {
 		const response = await request(app).post("/api/products").send({
 			name: "Producto Test",
 			price: 100,
@@ -83,9 +86,10 @@ describe("Products API", () => {
 		expect(response.status).to.equal(400);
 		expect(response.body.status).to.equal("error");
 		expect(response.body.error).to.equal("VALIDATION_ERROR");
+		expect(response.body.message).to.equal("Los datos enviados no son válidos.");
 	});
 
-	it("debería actualizar el stock de un producto correctamente", async () => {
+	it("debería actualizar el stock de un producto", async () => {
 		const createResponse = await request(app).post("/api/products").send({
 			name: "Producto Test",
 			price: 100,
@@ -106,7 +110,7 @@ describe("Products API", () => {
 		expect(response.body.data.stock).to.equal(25);
 	});
 
-	it("debería responder un error de validación cuando se intenta establecer un stock negativo", async () => {
+	it("debería validar correctamente el stock al actualizarlo", async () => {
 		const createResponse = await request(app).post("/api/products").send({
 			name: "Producto Test",
 			price: 100,
@@ -117,24 +121,22 @@ describe("Products API", () => {
 
 		const response = await request(app)
 			.patch(`/api/products/${productId}/stock`)
-			.send({
-				stock: -5,
-			});
+			.send({ stock: -5 });
 
 		expect(response.status).to.equal(400);
 		expect(response.body.status).to.equal("error");
 		expect(response.body.error).to.equal("VALIDATION_ERROR");
+		expect(response.body.message).to.equal("Los datos enviados no son válidos.");
 	});
 
-	it("debería responder PRODUCT_NOT_FOUND cuando se intenta actualizar un producto inexistente", async () => {
+	it("debería responder PRODUCT_NOT_FOUND al actualizar un producto inexistente", async () => {
 		const response = await request(app)
 			.patch("/api/products/507f1f77bcf86cd799439011/stock")
-			.send({
-				stock: 25,
-			});
+			.send({ stock: 25 });
 
 		expect(response.status).to.equal(404);
 		expect(response.body.status).to.equal("error");
 		expect(response.body.error).to.equal("PRODUCT_NOT_FOUND");
+		expect(response.body.message).to.equal("No se encontró el producto.");
 	});
 });

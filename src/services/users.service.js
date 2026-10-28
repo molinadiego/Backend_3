@@ -1,5 +1,6 @@
 import { mkdir, rename, unlink } from "node:fs/promises";
 import path from "node:path";
+import bcrypt from "bcrypt";
 import { USER_ROLES, DOCUMENT_TYPES } from "../constants/index.js";
 import { UPLOAD_DIRECTORIES } from "../config/multer.config.js";
 import { AppError } from "../errors/app.error.js";
@@ -26,7 +27,7 @@ export class UserService {
 	}
 
 	async createUser(data) {
-		const { name, email, password, role } = data;
+		const { name, email, password } = data;
 
 		if (!name || !email || !password) {
 			throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
@@ -38,15 +39,11 @@ export class UserService {
 			throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
 		}
 
-		if (role && !Object.values(USER_ROLES).includes(role)) {
-			throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
-		}
-
 		const newUser = await this.userRepository.create({
 			name,
 			email,
-			password,
-			role: role || USER_ROLES.CUSTOMER,
+			password: await bcrypt.hash(password, 10),
+			role: USER_ROLES.CUSTOMER,
 		});
 
 		logger.info("Usuario creado", {
@@ -63,7 +60,22 @@ export class UserService {
 	async updateUser(id, data) {
 		await this.getUserById(id);
 
-		return this.userRepository.update(id, data);
+		const { name, email, role, password } = data;
+		const updateData = Object.fromEntries(
+			Object.entries({ name, email, role }).filter(
+				([, value]) => value !== undefined,
+			),
+		);
+
+		if (password !== undefined) {
+			if (!password) {
+				throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
+			}
+
+			updateData.password = await bcrypt.hash(password, 10);
+		}
+
+		return this.userRepository.update(id, updateData);
 	}
 
 	async deleteUser(id) {
