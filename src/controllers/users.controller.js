@@ -1,72 +1,88 @@
-import { asyncHandler } from "../middlewares/async-handler.middleware.js";
-
 export class UserController {
 	constructor(userService) {
 		this.userService = userService;
-
-		this.getAll = asyncHandler(this.getAll.bind(this));
-		this.getById = asyncHandler(this.getById.bind(this));
-		this.create = asyncHandler(this.create.bind(this));
-		this.update = asyncHandler(this.update.bind(this));
-		this.delete = asyncHandler(this.delete.bind(this));
-		this.uploadDocument = asyncHandler(this.uploadDocument.bind(this));
 	}
 
-	async getAll(req, res) {
-		const users = await this.userService.getUsers();
+	getAll = async (req, res, next) => {
+		try {
+			const result = await this.userService.getUsers(req.query);
 
-		res.status(200).json({
-			status: "success",
-			data: users,
-		});
-	}
+			return res.status(200).json({
+				status: "success",
+				data: result.items,
+				pagination: result.pagination,
+			});
+		} catch (error) {
+			next(error);
+		}
+	};
 
-	async getById(req, res) {
-		const user = await this.userService.getUserById(req.params.id);
+	getById = async (req, res, next) => {
+		try {
+			const user = await this.userService.getUserById(req.params.id);
 
-		res.status(200).json({
-			status: "success",
-			data: user,
-		});
-	}
+			return res.status(200).json({
+				status: "success",
+				data: user,
+			});
+		} catch (error) {
+			next(error);
+		}
+	};
 
-	async create(req, res) {
-		const newUser = await this.userService.createUser(req.body);
+	create = async (req, res, next) => {
+		try {
+			const user = await this.userService.createUser(req.body);
 
-		res.status(201).json({
-			status: "success",
-			data: newUser,
-		});
-	}
+			return res.status(201).json({
+				status: "success",
+				data: user,
+			});
+		} catch (error) {
+			next(error);
+		}
+	};
 
-	async update(req, res) {
-		const updated = await this.userService.updateUser(req.params.id, req.body);
+	update = async (req, res, next) => {
+		try {
+			const user = await this.userService.updateUser(req.params.id, req.body);
 
-		res.status(200).json({
-			status: "success",
-			data: updated,
-		});
-	}
+			return res.status(200).json({
+				status: "success",
+				data: user,
+			});
+		} catch (error) {
+			next(error);
+		}
+	};
 
-	async delete(req, res) {
-		await this.userService.deleteUser(req.params.id);
+	delete = async (req, res, next) => {
+		try {
+			await this.userService.deleteUser(req.params.id);
 
-		res.status(200).json({
-			status: "success",
-			message: "Usuario eliminado correctamente",
-		});
-	}
+			return res.status(200).json({
+				status: "success",
+				message: "Usuario eliminado correctamente.",
+			});
+		} catch (error) {
+			next(error);
+		}
+	};
 
-	async uploadDocument(req, res) {
-		const user = await this.userService.uploadDocument(
-			req.params.id,
-			req.file,
-			req.body.documentType,
-		);
+	uploadDocument = async (req, res, next) => {
+		try {
+			const user = await this.userService.uploadDocument(
+				req.params.id,
+				req.file,
+				req.body.documentType,
+			);
 
-		res.status(200).json({
-			status: "success",
-			payload: user,
-		});
-	}
+			return res.status(200).json({
+				status: "success",
+				data: user,
+			});
+		} catch (error) {
+			next(error);
+		}
+	};
 }

@@ -4,6 +4,32 @@
             - Products
         summary: Obtener todos los productos
         description: Obtiene todos los productos activos registrados en ShipNow.
+        parameters:
+            - name: page
+              in: query
+              required: false
+              description: Número de página. Debe ser un entero positivo.
+              schema:
+                  type: integer
+                  minimum: 1
+                  default: 1
+            - name: limit
+              in: query
+              required: false
+              description: Cantidad de resultados por página. Debe ser un entero positivo; los valores superiores a 100 se limitan a 100.
+              schema:
+                  type: integer
+                  minimum: 1
+                  default: 10
+            - name: status
+              in: query
+              required: false
+              description: Filtra por estado del producto.
+              schema:
+                  type: string
+                  enum:
+                      - AVAILABLE
+                      - OUT_OF_STOCK
         responses:
             "200":
                 description: Lista de productos obtenida correctamente.
@@ -15,10 +41,31 @@
                                 status:
                                     type: string
                                     example: success
-                                data:
+                                payload:
                                     type: array
                                     items:
                                         $ref: "#/components/schemas/Product"
+                                pagination:
+                                    type: object
+                                    properties:
+                                        page:
+                                            type: integer
+                                            example: 1
+                                        limit:
+                                            type: integer
+                                            example: 10
+                                        total:
+                                            type: integer
+                                            example: 25
+                                        totalPages:
+                                            type: integer
+                                            example: 3
+            "400":
+                description: Parámetros de consulta no válidos.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
             "500":
                 description: Error interno del servidor.
                 content:

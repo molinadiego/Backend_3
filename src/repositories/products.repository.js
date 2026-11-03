@@ -1,10 +1,32 @@
+import { buildPaginationMetadata } from "../utils/pagination.js";
+
 export class ProductRepository {
 	constructor(productModel) {
 		this.productModel = productModel;
 	}
 
-	async getAll(filter = {}) {
-		return this.productModel.find({ ...filter, isActive: true }).lean();
+	async getAll(filter = {}, pagination = { page: 1, limit: 10, skip: 0 }) {
+		const criteria = { ...filter, isActive: true };
+
+		const [items, total] = await Promise.all([
+			this.productModel
+				.find(criteria)
+				.sort({ createdAt: -1, _id: -1 })
+				.skip(pagination.skip)
+				.limit(pagination.limit)
+				.lean(),
+
+			this.productModel.countDocuments(criteria),
+		]);
+
+		return {
+			items,
+			pagination: buildPaginationMetadata({
+				page: pagination.page,
+				limit: pagination.limit,
+				total,
+			}),
+		};
 	}
 
 	async getById(id) {

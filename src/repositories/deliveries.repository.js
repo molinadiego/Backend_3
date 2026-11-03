@@ -1,14 +1,34 @@
+import { buildPaginationMetadata } from "../utils/pagination.js";
+
 export class DeliveryRepository {
 	constructor(deliveryModel) {
 		this.deliveryModel = deliveryModel;
 	}
 
-	async findAll(filter = {}) {
-		return this.deliveryModel
-			.find({ ...filter, isActive: true })
-			.populate("order")
-			.populate("deliveryPerson", "name email role")
-			.lean();
+	async findAll(filter = {}, pagination = { page: 1, limit: 10, skip: 0 }) {
+		const criteria = { ...filter, isActive: true };
+
+		const [items, total] = await Promise.all([
+			this.deliveryModel
+				.find(criteria)
+				.populate("order")
+				.populate("deliveryPerson", "name email role")
+				.sort({ createdAt: -1, _id: -1 })
+				.skip(pagination.skip)
+				.limit(pagination.limit)
+				.lean(),
+
+			this.deliveryModel.countDocuments(criteria),
+		]);
+
+		return {
+			items,
+			pagination: buildPaginationMetadata({
+				page: pagination.page,
+				limit: pagination.limit,
+				total,
+			}),
+		};
 	}
 
 	async findById(id) {

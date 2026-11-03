@@ -4,6 +4,34 @@
             - Users
         summary: Obtener todos los usuarios
         description: Obtiene todos los usuarios activos registrados en ShipNow.
+        parameters:
+            - name: page
+              in: query
+              required: false
+              description: Número de página. Debe ser un entero positivo.
+              schema:
+                  type: integer
+                  minimum: 1
+                  default: 1
+            - name: limit
+              in: query
+              required: false
+              description: Cantidad de resultados por página. Debe ser un entero positivo; los valores superiores a 100 se limitan a 100.
+              schema:
+                  type: integer
+                  minimum: 1
+                  default: 10
+            - name: role
+              in: query
+              required: false
+              description: Filtra por rol del usuario.
+              schema:
+                  type: string
+                  enum:
+                      - admin
+                      - customer
+                      - driver
+                      - store
         responses:
             "200":
                 description: Lista de usuarios obtenida correctamente.
@@ -19,6 +47,27 @@
                                     type: array
                                     items:
                                         $ref: "#/components/schemas/User"
+                                pagination:
+                                    type: object
+                                    properties:
+                                        page:
+                                            type: integer
+                                            example: 1
+                                        limit:
+                                            type: integer
+                                            example: 10
+                                        total:
+                                            type: integer
+                                            example: 25
+                                        totalPages:
+                                            type: integer
+                                            example: 3
+            "400":
+                description: Parámetros de consulta no válidos.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
             "500":
                 description: Error interno del servidor.
                 content:
@@ -30,7 +79,7 @@
         tags:
             - Users
         summary: Crear un usuario
-        description: Crea un nuevo usuario en ShipNow.
+        description: Crea un usuario cliente en ShipNow.
         requestBody:
             required: true
             content:
@@ -52,14 +101,6 @@
                             password:
                                 type: string
                                 example: "Password123"
-                            role:
-                                type: string
-                                enum:
-                                    - admin
-                                    - customer
-                                    - driver
-                                    - store
-                                example: customer
         responses:
             "201":
                 description: Usuario creado correctamente.
@@ -164,9 +205,6 @@
                                     - driver
                                     - store
                                 example: customer
-                            isActive:
-                                type: boolean
-                                example: true
         responses:
             "200":
                 description: Usuario actualizado correctamente.

@@ -1,4 +1,5 @@
 import swaggerJSDoc from "swagger-jsdoc";
+import { config } from "../config/env.config.js";
 
 const swaggerOptions = {
 	definition: {
@@ -11,8 +12,11 @@ const swaggerOptions = {
 		},
 		servers: [
 			{
-				url: "http://localhost:8080",
-				description: "Servidor local",
+				url: config.apiBaseUrl,
+				description:
+					config.nodeEnv === "production"
+						? "Servidor de producción"
+						: "Servidor de desarrollo",
 			},
 		],
 	},

@@ -1,12 +1,45 @@
 import { unlink } from "node:fs/promises";
-import { DOCUMENT_TYPES } from "../constants/index.js";
+import mongoose from "mongoose";
+import { DELIVERY_STATUS, DOCUMENT_TYPES } from "../constants/index.js";
 import { AppError } from "../errors/app.error.js";
 import { ERRORS_CODES } from "../errors/errors.codes.js";
 import logger from "../utils/logger.js";
+import { parsePagination } from "../utils/pagination.js";
 
 export class DeliveryService {
 	constructor(deliveryRepository) {
 		this.deliveryRepository = deliveryRepository;
+	}
+
+	async getAll(query = {}) {
+		const pagination = parsePagination(query);
+		const filter = {};
+
+		if (query.status) {
+			if (!Object.values(DELIVERY_STATUS).includes(query.status)) {
+				throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
+			}
+
+			filter.status = query.status;
+		}
+
+		if (query.deliveryPerson) {
+			if (!mongoose.isValidObjectId(query.deliveryPerson)) {
+				throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
+			}
+
+			filter.deliveryPerson = query.deliveryPerson;
+		}
+
+		if (query.order) {
+			if (!mongoose.isValidObjectId(query.order)) {
+				throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
+			}
+
+			filter.order = query.order;
+		}
+
+		return this.deliveryRepository.findAll(filter, pagination);
 	}
 
 	async uploadProof(id, file) {

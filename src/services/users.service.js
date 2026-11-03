@@ -6,14 +6,26 @@ import { UPLOAD_DIRECTORIES } from "../config/multer.config.js";
 import { AppError } from "../errors/app.error.js";
 import { ERRORS_CODES } from "../errors/errors.codes.js";
 import logger from "../utils/logger.js";
+import { parsePagination } from "../utils/pagination.js";
 
 export class UserService {
 	constructor(userRepository) {
 		this.userRepository = userRepository;
 	}
 
-	async getUsers() {
-		return this.userRepository.findAll();
+	async getUsers(query = {}) {
+		const pagination = parsePagination(query);
+		const filter = {};
+
+		if (query.role) {
+			if (!Object.values(USER_ROLES).includes(query.role)) {
+				throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
+			}
+
+			filter.role = query.role;
+		}
+
+		return this.userRepository.findAll(filter, pagination);
 	}
 
 	async getUserById(id) {

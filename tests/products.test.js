@@ -3,6 +3,7 @@ import request from "supertest";
 
 import app from "../src/app.js";
 import { connectDB, disconnectDB } from "../src/config/database.js";
+import { PRODUCT_STATUS } from "../src/constants/index.js";
 import { ProductModel } from "../src/models/product.model.js";
 
 describe("Products API", () => {
@@ -25,7 +26,87 @@ describe("Products API", () => {
 
 		expect(response.status).to.equal(200);
 		expect(response.body.status).to.equal("success");
-		expect(response.body.data).to.be.an("array");
+		expect(response.body.payload).to.be.an("array");
+		expect(response.body.pagination.page).to.equal(1);
+		expect(response.body.pagination.limit).to.equal(10);
+		expect(response.body.pagination.totalPages).to.equal(
+			Math.ceil(response.body.pagination.total / 10),
+		);
+	});
+
+	it("debería combinar el filtro por estado con paginación y limitar limit", async () => {
+		const initialAvailableCount = await ProductModel.countDocuments({
+			status: PRODUCT_STATUS.AVAILABLE,
+			isActive: true,
+		});
+		const createdProducts = await ProductModel.create([
+			{
+				name: "Producto Test",
+				price: 10,
+				stock: 5,
+				status: PRODUCT_STATUS.AVAILABLE,
+			},
+			{
+				name: "Producto Test",
+				price: 20,
+				stock: 4,
+				status: PRODUCT_STATUS.AVAILABLE,
+			},
+			{
+				name: "Producto Test",
+				price: 30,
+				stock: 0,
+				status: PRODUCT_STATUS.OUT_OF_STOCK,
+			},
+		]);
+
+		const pageOneResponse = await request(app).get(
+			"/api/products?status=AVAILABLE&page=1&limit=1",
+		);
+		const pageTwoResponse = await request(app).get(
+			"/api/products?status=AVAILABLE&page=2&limit=1",
+		);
+
+		expect(pageOneResponse.status).to.equal(200);
+		expect(pageOneResponse.body.pagination).to.deep.equal({
+			page: 1,
+			limit: 1,
+			total: initialAvailableCount + 2,
+			totalPages: initialAvailableCount + 2,
+		});
+		expect(pageTwoResponse.status).to.equal(200);
+		expect(pageTwoResponse.body.pagination.page).to.equal(2);
+		expect(pageTwoResponse.body.payload).to.have.lengthOf(1);
+		expect(pageOneResponse.body.payload[0].status).to.equal(
+			PRODUCT_STATUS.AVAILABLE,
+		);
+		expect(pageTwoResponse.body.payload[0].status).to.equal(
+			PRODUCT_STATUS.AVAILABLE,
+		);
+		expect(pageOneResponse.body.payload[0]._id).to.not.equal(
+			pageTwoResponse.body.payload[0]._id,
+		);
+		expect(
+			createdProducts.some(
+				(product) =>
+					product._id.toString() === pageTwoResponse.body.payload[0]._id,
+			),
+		).to.equal(true);
+
+		const cappedResponse = await request(app).get(
+			"/api/products?status=AVAILABLE&limit=101",
+		);
+		expect(cappedResponse.status).to.equal(200);
+		expect(cappedResponse.body.pagination.limit).to.equal(100);
+	});
+
+	it("debería rechazar parámetros de paginación inválidos", async () => {
+		for (const query of ["page=0", "page=2.5", "page=texto", "limit=-1"]) {
+			const response = await request(app).get(`/api/products?${query}`);
+
+			expect(response.status).to.equal(400);
+			expect(response.body.error).to.equal("VALIDATION_ERROR");
+		}
 	});
 
 	it("debería responder PRODUCT_NOT_FOUND cuando el producto no existe", async () => {
@@ -100,9 +181,7 @@ describe("Products API", () => {
 
 		const response = await request(app)
 			.patch(`/api/products/${productId}/stock`)
-			.send({
-				stock: 25,
-			});
+			.send({ stock: 25 });
 
 		expect(response.status).to.equal(200);
 		expect(response.body.status).to.equal("success");

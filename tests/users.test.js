@@ -46,6 +46,88 @@ describe("Users API", () => {
 		);
 		expect(listedUser).to.exist;
 		expect(listedUser.password).to.not.exist;
+		expect(response.body.pagination.page).to.equal(1);
+		expect(response.body.pagination.limit).to.equal(10);
+		expect(response.body.pagination.totalPages).to.equal(
+			Math.ceil(response.body.pagination.total / 10),
+		);
+	});
+
+	it("debería combinar el filtro por rol con la paginación", async () => {
+		const initialAdminCount = await UserModel.countDocuments({
+			role: USER_ROLES.ADMIN,
+			isActive: true,
+		});
+		const createdUsers = await UserModel.create([
+			{
+				name: "Admin Test Uno",
+				email: `test-users-pagination-${Date.now()}-1@test.com`,
+				password: await bcrypt.hash("test-password", 10),
+				role: USER_ROLES.ADMIN,
+			},
+			{
+				name: "Admin Test Dos",
+				email: `test-users-pagination-${Date.now()}-2@test.com`,
+				password: await bcrypt.hash("test-password", 10),
+				role: USER_ROLES.ADMIN,
+			},
+			{
+				name: "Admin Test Tres",
+				email: `test-users-pagination-${Date.now()}-3@test.com`,
+				password: await bcrypt.hash("test-password", 10),
+				role: USER_ROLES.ADMIN,
+			},
+			{
+				name: "Cliente Test",
+				email: `test-users-pagination-${Date.now()}-4@test.com`,
+				password: await bcrypt.hash("test-password", 10),
+				role: USER_ROLES.CUSTOMER,
+			},
+		]);
+
+		const pageOneResponse = await request(app).get(
+			"/api/users?role=admin&page=1&limit=1",
+		);
+		const pageTwoResponse = await request(app).get(
+			"/api/users?role=admin&page=2&limit=1",
+		);
+
+		expect(pageOneResponse.status).to.equal(200);
+		expect(pageOneResponse.body.data).to.have.lengthOf(1);
+		expect(pageOneResponse.body.pagination).to.deep.equal({
+			page: 1,
+			limit: 1,
+			total: initialAdminCount + 3,
+			totalPages: initialAdminCount + 3,
+		});
+		expect(pageTwoResponse.status).to.equal(200);
+		expect(pageTwoResponse.body.data).to.have.lengthOf(1);
+		expect(pageTwoResponse.body.pagination.page).to.equal(2);
+		expect(pageOneResponse.body.data[0].role).to.equal(USER_ROLES.ADMIN);
+		expect(pageTwoResponse.body.data[0].role).to.equal(USER_ROLES.ADMIN);
+		expect(pageOneResponse.body.data[0]._id).to.not.equal(
+			pageTwoResponse.body.data[0]._id,
+		);
+		expect(
+			createdUsers.some(
+				(user) => user._id.toString() === pageTwoResponse.body.data[0]._id,
+			),
+		).to.equal(true);
+
+		const cappedResponse = await request(app).get(
+			"/api/users?role=admin&limit=101",
+		);
+		expect(cappedResponse.status).to.equal(200);
+		expect(cappedResponse.body.pagination.limit).to.equal(100);
+	});
+
+	it("debería rechazar parámetros de paginación inválidos", async () => {
+		for (const query of ["page=-1", "page=1.5", "page=texto", "limit=0"]) {
+			const response = await request(app).get(`/api/users?${query}`);
+
+			expect(response.status).to.equal(400);
+			expect(response.body.error).to.equal("VALIDATION_ERROR");
+		}
 	});
 
 	it("no debería incluir la contraseña al consultar un usuario", async () => {

@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpecs } from "./docs/swagger.config.js";
 import { UserModel } from "./models/user.model.js";
@@ -28,6 +29,7 @@ import { createLoggerRouter } from "./routes/logger.router.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
 import { routeNotFound } from "./middlewares/notfound.middleware.js";
 import { httpMiddleware } from "./middlewares/http.middleware.js";
+import { config } from "./config/env.config.js";
 
 const app = express();
 
@@ -63,6 +65,17 @@ app.use("/api/products", createProductRouter(productController));
 app.use("/api/mocks", createMocksRouter(mocksController));
 app.use("/api/logger", createLoggerRouter());
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
+
+app.get("/health", (req, res) => {
+	const isDatabaseConnected = mongoose.connection.readyState === 1;
+
+	return res.status(isDatabaseConnected ? 200 : 503).json({
+		status: isDatabaseConnected ? "ok" : "error",
+		environment: config.nodeEnv,
+		uptime: process.uptime(),
+		timestamp: new Date().toISOString(),
+	});
+});
 
 app.use(routeNotFound);
 app.use(errorHandler);

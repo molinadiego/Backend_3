@@ -1,13 +1,33 @@
+import { buildPaginationMetadata } from "../utils/pagination.js";
+
 export class UserRepository {
 	constructor(userModel) {
 		this.userModel = userModel;
 	}
 
-	async findAll(filter = {}) {
-		return this.userModel
-			.find({ ...filter, isActive: true })
-			.select("-password")
-			.lean();
+	async findAll(filter = {}, pagination = { page: 1, limit: 10, skip: 0 }) {
+		const criteria = { ...filter, isActive: true };
+
+		const [items, total] = await Promise.all([
+			this.userModel
+				.find(criteria)
+				.select("-password")
+				.sort({ createdAt: -1, _id: -1 })
+				.skip(pagination.skip)
+				.limit(pagination.limit)
+				.lean(),
+
+			this.userModel.countDocuments(criteria),
+		]);
+
+		return {
+			items,
+			pagination: buildPaginationMetadata({
+				page: pagination.page,
+				limit: pagination.limit,
+				total,
+			}),
+		};
 	}
 
 	async findById(id) {

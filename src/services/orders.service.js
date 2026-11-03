@@ -1,51 +1,83 @@
+import { ORDER_STATUS, DELIVERY_PRIORITY } from "../constants/index.js";
 import { ERRORS_CODES } from "../errors/errors.codes.js";
 import { AppError } from "../errors/app.error.js";
 import logger from "../utils/logger.js";
+import { parsePagination } from "../utils/pagination.js";
+import mongoose from "mongoose";
 
 export class OrderService {
-    constructor(orderRepository) {
-        this.orderRepository = orderRepository;
-    }
+	constructor(orderRepository) {
+		this.orderRepository = orderRepository;
+	}
 
-    async getAll(filter = {}) {
-        return this.orderRepository.findAll(filter);
-    }
+	async getAll(query = {}) {
+		const pagination = parsePagination(query);
+		const filter = {};
 
-    async getById(id) {
-        const order = await this.orderRepository.findById(id);
+		if (query.status) {
+			if (!Object.values(ORDER_STATUS).includes(query.status)) {
+				throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
+			}
 
-        if (!order) {
-            throw new AppError(ERRORS_CODES.ORDER_NOT_FOUND);
-        }
+			filter.status = query.status;
+		}
 
-        return order;
-    }
+		if (query.priority) {
+			if (!Object.values(DELIVERY_PRIORITY).includes(query.priority)) {
+				throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
+			}
 
-    async create(orderData) {
-        const orderCreated = await this.orderRepository.create(orderData);
-        logger.info("Orden creada.", {
-            orderId: orderCreated._id,
-        });
-        return orderCreated;
-    }
+			filter.priority = query.priority;
+		}
 
-    async update(id, updateData) {
-        const order = await this.orderRepository.update(id, updateData);
+		if (query.userId) {
+			if (!mongoose.isValidObjectId(query.userId)) {
+				throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
+			}
 
-        if (!order) {
-            throw new AppError(ERRORS_CODES.ORDER_NOT_FOUND);
-        }
+			filter.userId = query.userId;
+		}
 
-        return order;
-    }
+		return this.orderRepository.findAll(filter, pagination);
+	}
 
-    async delete(id) {
-        const order = await this.orderRepository.softDelete(id);
+	async getById(id) {
+		const order = await this.orderRepository.findById(id);
 
-        if (!order) {
-            throw new AppError(ERRORS_CODES.ORDER_NOT_FOUND);
-        }
+		if (!order) {
+			throw new AppError(ERRORS_CODES.ORDER_NOT_FOUND);
+		}
 
-        return order;
-    }
+		return order;
+	}
+
+	async create(orderData) {
+		const orderCreated = await this.orderRepository.create(orderData);
+
+		logger.info("Orden creada.", {
+			orderId: orderCreated._id,
+		});
+
+		return orderCreated;
+	}
+
+	async update(id, updateData) {
+		const order = await this.orderRepository.update(id, updateData);
+
+		if (!order) {
+			throw new AppError(ERRORS_CODES.ORDER_NOT_FOUND);
+		}
+
+		return order;
+	}
+
+	async delete(id) {
+		const order = await this.orderRepository.softDelete(id);
+
+		if (!order) {
+			throw new AppError(ERRORS_CODES.ORDER_NOT_FOUND);
+		}
+
+		return order;
+	}
 }

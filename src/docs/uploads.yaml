@@ -1,4 +1,100 @@
 paths:
+  /api/deliveries:
+    get:
+      summary: Obtener entregas
+      description: Obtiene las entregas activas con paginación y filtros opcionales.
+      tags:
+        - Deliveries
+      parameters:
+        - in: query
+          name: page
+          required: false
+          description: Número de página. Debe ser un entero positivo.
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+        - in: query
+          name: limit
+          required: false
+          description: Cantidad de resultados por página. Debe ser un entero positivo; los valores superiores a 100 se limitan a 100.
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+            example: 10
+        - in: query
+          name: status
+          required: false
+          description: Filtra por estado de entrega.
+          schema:
+            type: string
+            enum:
+              - pending
+              - assigned
+              - in_transit
+              - delivered
+              - cancelled
+        - in: query
+          name: deliveryPerson
+          required: false
+          description: Filtra por el identificador ObjectId del repartidor.
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+            example: "507f1f77bcf86cd799439014"
+        - in: query
+          name: order
+          required: false
+          description: Filtra por el identificador ObjectId del pedido.
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+            example: "507f1f77bcf86cd799439012"
+      responses:
+        "200":
+          description: Lista de entregas obtenida correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  payload:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Delivery"
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 10
+                      total:
+                        type: integer
+                        example: 25
+                      totalPages:
+                        type: integer
+                        example: 3
+        "400":
+          description: Parámetros de consulta no válidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/users/{id}/documents:
     post:
       summary: Cargar un documento de usuario

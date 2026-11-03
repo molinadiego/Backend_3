@@ -120,11 +120,12 @@ describe("Uploads API", () => {
 
 		expect(response.status).to.equal(200);
 		expect(response.body.status).to.equal("success");
-		expect(response.body.payload.documents).to.have.lengthOf(1);
-		expect(response.body.payload.documents[0].documentType).to.equal(
+		expect(response.body.data.documents).to.have.lengthOf(1);
+		expect(response.body.data.password).to.not.exist;
+		expect(response.body.data.documents[0].documentType).to.equal(
 			"user_document",
 		);
-		expect(response.body.payload.documents[0].mimetype).to.equal(
+		expect(response.body.data.documents[0].mimetype).to.equal(
 			"application/pdf",
 		);
 	});
@@ -225,7 +226,7 @@ describe("Uploads API", () => {
 			});
 
 		expect(response.status).to.equal(200);
-		expect(response.body.payload.documents[0].mimetype).to.equal("image/webp");
+		expect(response.body.data.documents[0].mimetype).to.equal("image/webp");
 	});
 
 	it("debería rechazar una licencia para un usuario que no sea repartidor", async () => {

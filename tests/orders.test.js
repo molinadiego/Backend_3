@@ -3,6 +3,7 @@ import request from "supertest";
 
 import app from "../src/app.js";
 import { connectDB, disconnectDB } from "../src/config/database.js";
+import { DELIVERY_PRIORITY, ORDER_STATUS } from "../src/constants/index.js";
 import { UserModel } from "../src/models/user.model.js";
 import { OrderModel } from "../src/models/order.model.js";
 
@@ -55,6 +56,79 @@ describe("Orders API", () => {
 		expect(response.status).to.equal(200);
 		expect(response.body.status).to.equal("success");
 		expect(response.body.payload).to.be.an("array");
+		expect(response.body.pagination.page).to.equal(1);
+		expect(response.body.pagination.limit).to.equal(10);
+		expect(response.body.pagination.totalPages).to.equal(
+			Math.ceil(response.body.pagination.total / 10),
+		);
+	});
+
+	it("debería combinar filtros de orden con paginación", async () => {
+		const user = await createTestUser();
+		const matchingOrders = await OrderModel.create(
+			[1, 2, 3].map((index) => ({
+				userId: user._id,
+				deliveryAddress: "123 Test Street",
+				total: 100 + index,
+				status: ORDER_STATUS.CREATED,
+				priority: DELIVERY_PRIORITY.HIGH,
+			})),
+		);
+		await OrderModel.create([
+			{
+				userId: user._id,
+				deliveryAddress: "123 Test Street",
+				total: 200,
+				status: ORDER_STATUS.CANCELLED,
+				priority: DELIVERY_PRIORITY.HIGH,
+			},
+			{
+				userId: user._id,
+				deliveryAddress: "123 Test Street",
+				total: 201,
+				status: ORDER_STATUS.CREATED,
+				priority: DELIVERY_PRIORITY.NORMAL,
+			},
+		]);
+
+		const query = `status=${ORDER_STATUS.CREATED}&priority=${DELIVERY_PRIORITY.HIGH}&userId=${user._id}`;
+		const pageOneResponse = await request(app).get(
+			`/api/orders?${query}&page=1&limit=1`,
+		);
+		const pageTwoResponse = await request(app).get(
+			`/api/orders?${query}&page=2&limit=1`,
+		);
+
+		expect(pageOneResponse.status).to.equal(200);
+		expect(pageOneResponse.body.pagination).to.deep.equal({
+			page: 1,
+			limit: 1,
+			total: 3,
+			totalPages: 3,
+		});
+		expect(pageTwoResponse.status).to.equal(200);
+		expect(pageTwoResponse.body.pagination.page).to.equal(2);
+		expect(pageTwoResponse.body.payload).to.have.lengthOf(1);
+		expect(pageTwoResponse.body.payload[0].status).to.equal(ORDER_STATUS.CREATED);
+		expect(pageTwoResponse.body.payload[0].priority).to.equal(
+			DELIVERY_PRIORITY.HIGH,
+		);
+		expect(pageOneResponse.body.payload[0]._id).to.not.equal(
+			pageTwoResponse.body.payload[0]._id,
+		);
+		expect(
+			matchingOrders.some(
+				(order) =>
+					order._id.toString() === pageTwoResponse.body.payload[0]._id,
+			),
+		).to.equal(true);
+	});
+
+	it("debería rechazar parámetros de paginación inválidos", async () => {
+		const response = await request(app).get("/api/orders?page=texto");
+
+		expect(response.status).to.equal(400);
+		expect(response.body.error).to.equal("VALIDATION_ERROR");
 	});
 
 	it("debería responder ORDER_NOT_FOUND cuando la orden no existe", async () => {
