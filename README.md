@@ -761,6 +761,14 @@ El archivo `.env` contiene información sensible y **no debe subirse al reposito
 
 Cuando `NODE_ENV=test`, `src/config/env.config.js` carga las variables desde `.env.test`. Ese archivo debe contener las variables obligatorias, incluida una URI de MongoDB destinada exclusivamente a pruebas.
 
+Para configurar el entorno de pruebas, copiá la plantilla y verificá que la base indicada sea exclusiva de testing:
+
+```bash
+cp .env.test.example .env.test
+```
+
+La plantilla usa `mongodb://127.0.0.1:27017/shipnow_test`; si usás otra instancia, configurá `MONGODB_URI` con una base aislada para pruebas. No apuntes `.env.test` a desarrollo ni a producción. `.env.test` está ignorado por Git y no debe subirse al repositorio.
+
 Para facilitar la configuración se incluye:
 
 ```text
@@ -834,6 +842,8 @@ npm test
 ```
 
 El script configura `NODE_ENV=test` y carga `.env.test`. Las pruebas cubren mocking, usuarios, productos, órdenes, uploads y paginación, incluido el listado de entregas. Las pruebas de integración requieren una base de datos de prueba segura y accesible; no uses una base con datos reales.
+
+`cross-env` está declarado en `devDependencies` y `npm install` lo instala junto con las dependencias de desarrollo. Si se instala omitiendo devDependencies, `npm test` no tendrá disponible ese binario.
 
 En la última ejecución verificada, `npm test` finalizó con **81 tests aprobados y 0 fallidos**.
 

@@ -2,11 +2,29 @@ import { mkdir, rename, unlink } from "node:fs/promises";
 import path from "node:path";
 import bcrypt from "bcrypt";
 import { USER_ROLES, DOCUMENT_TYPES } from "../constants/index.js";
-import { UPLOAD_DIRECTORIES } from "../config/multer.config.js";
+import {
+	getRelativeUploadPath,
+	UPLOAD_DIRECTORIES,
+} from "../config/multer.config.js";
 import { AppError } from "../errors/app.error.js";
 import { ERRORS_CODES } from "../errors/errors.codes.js";
 import logger from "../utils/logger.js";
 import { parsePagination } from "../utils/pagination.js";
+
+const withoutDocumentPaths = (user) => {
+	const userObject = user?.toObject?.() ?? user;
+
+	if (!userObject || !Array.isArray(userObject.documents)) {
+		return userObject;
+	}
+
+	return {
+		...userObject,
+		documents: userObject.documents.map(({ path: filePath, ...document }) =>
+			document,
+		),
+	};
+};
 
 export class UserService {
 	constructor(userRepository) {
@@ -25,7 +43,12 @@ export class UserService {
 			filter.role = query.role;
 		}
 
-		return this.userRepository.findAll(filter, pagination);
+		const result = await this.userRepository.findAll(filter, pagination);
+
+		return {
+			...result,
+			items: result.items.map(withoutDocumentPaths),
+		};
 	}
 
 	async getUserById(id) {
@@ -35,7 +58,7 @@ export class UserService {
 			throw new AppError(ERRORS_CODES.USER_NOT_FOUND);
 		}
 
-		return user;
+		return withoutDocumentPaths(user);
 	}
 
 	async createUser(data) {
@@ -87,7 +110,9 @@ export class UserService {
 			updateData.password = await bcrypt.hash(password, 10);
 		}
 
-		return this.userRepository.update(id, updateData);
+		const updatedUser = await this.userRepository.update(id, updateData);
+
+		return withoutDocumentPaths(updatedUser);
 	}
 
 	async deleteUser(id) {
@@ -134,7 +159,7 @@ export class UserService {
 			const documentMetadata = {
 				originalName: file.originalname,
 				filename: file.filename,
-				path: file.path,
+				path: getRelativeUploadPath(file.path),
 				mimetype: file.mimetype,
 				size: file.size,
 				documentType,
@@ -157,7 +182,7 @@ export class UserService {
 				size: file.size,
 			});
 
-			return updatedUser;
+			return withoutDocumentPaths(updatedUser);
 		} catch (error) {
 			try {
 				await unlink(file.path);

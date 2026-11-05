@@ -15,6 +15,24 @@ export const UPLOAD_DIRECTORIES = Object.freeze({
 	DELIVERY_PROOFS: path.join(uploadsDirectory, "proofs"),
 });
 
+export const getRelativeUploadPath = (filePath) => {
+	const relativePath = path.relative(uploadsDirectory, filePath);
+
+	if (
+		!relativePath ||
+		relativePath === ".." ||
+		relativePath.startsWith(`..${path.sep}`) ||
+		path.isAbsolute(relativePath)
+	) {
+		throw new Error("La ruta del archivo no pertenece al directorio uploads.");
+	}
+
+	return path.posix.join(
+		"uploads",
+		relativePath.split(path.sep).join(path.posix.sep),
+	);
+};
+
 export const ALLOWED_MIME_TYPES = Object.freeze({
 	"application/pdf": ".pdf",
 	"image/jpeg": ".jpg",

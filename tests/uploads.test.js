@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import path from "node:path";
 import request from "supertest";
 import { unlink } from "node:fs/promises";
 
@@ -128,6 +129,20 @@ describe("Uploads API", () => {
 		expect(response.body.data.documents[0].mimetype).to.equal(
 			"application/pdf",
 		);
+		expect(response.body.data.documents[0].path).to.not.exist;
+
+		const storedUser = await UserModel.findById(user._id).lean();
+		expect(path.isAbsolute(storedUser.documents[0].path)).to.equal(false);
+		expect(storedUser.documents[0].path).to.match(/^uploads\/documents\//);
+
+		const userResponse = await request(app).get(`/api/users/${user._id}`);
+		expect(userResponse.body.data.documents[0].path).to.not.exist;
+
+		const usersResponse = await request(app).get("/api/users");
+		const listedUser = usersResponse.body.data.find(
+			(item) => item._id === user._id.toString(),
+		);
+		expect(listedUser.documents[0].path).to.not.exist;
 	});
 
 	it("debería responder FILE_REQUIRED cuando falta el archivo", async () => {
@@ -200,6 +215,17 @@ describe("Uploads API", () => {
 		expect(response.status).to.equal(200);
 		expect(response.body.payload.proof.documentType).to.equal("delivery_proof");
 		expect(response.body.payload.proof.mimetype).to.equal("application/pdf");
+		expect(response.body.payload.proof.path).to.not.exist;
+
+		const storedDelivery = await DeliveryModel.findById(delivery._id).lean();
+		expect(path.isAbsolute(storedDelivery.proof.path)).to.equal(false);
+		expect(storedDelivery.proof.path).to.match(/^uploads\/proofs\//);
+
+		const deliveriesResponse = await request(app).get("/api/deliveries");
+		const listedDelivery = deliveriesResponse.body.payload.find(
+			(item) => item._id === delivery._id.toString(),
+		);
+		expect(listedDelivery.proof.path).to.not.exist;
 	});
 
 	it("debería responder DELIVERY_NOT_FOUND cuando la entrega no existe", async () => {
@@ -227,6 +253,25 @@ describe("Uploads API", () => {
 
 		expect(response.status).to.equal(200);
 		expect(response.body.data.documents[0].mimetype).to.equal("image/webp");
+	});
+
+	it("debería almacenar la ruta de una licencia relativa y no exponerla", async () => {
+		const driver = await createTestUser(USER_ROLES.DRIVER);
+
+		const response = await request(app)
+			.post(`/api/users/${driver._id}/documents`)
+			.field("documentType", "driver_license")
+			.attach("file", pdfBuffer, {
+				filename: "licencia.pdf",
+				contentType: "application/pdf",
+			});
+
+		expect(response.status).to.equal(200);
+		expect(response.body.data.documents[0].path).to.not.exist;
+
+		const storedDriver = await UserModel.findById(driver._id).lean();
+		expect(path.isAbsolute(storedDriver.documents[0].path)).to.equal(false);
+		expect(storedDriver.documents[0].path).to.match(/^uploads\/licenses\//);
 	});
 
 	it("debería rechazar una licencia para un usuario que no sea repartidor", async () => {

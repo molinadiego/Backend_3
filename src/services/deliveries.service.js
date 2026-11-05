@@ -5,6 +5,22 @@ import { AppError } from "../errors/app.error.js";
 import { ERRORS_CODES } from "../errors/errors.codes.js";
 import logger from "../utils/logger.js";
 import { parsePagination } from "../utils/pagination.js";
+import { getRelativeUploadPath } from "../config/multer.config.js";
+
+const withoutProofPath = (delivery) => {
+	const deliveryObject = delivery?.toObject?.() ?? delivery;
+
+	if (!deliveryObject?.proof) {
+		return deliveryObject;
+	}
+
+	const { path: filePath, ...proof } = deliveryObject.proof;
+
+	return {
+		...deliveryObject,
+		proof,
+	};
+};
 
 export class DeliveryService {
 	constructor(deliveryRepository) {
@@ -39,7 +55,12 @@ export class DeliveryService {
 			filter.order = query.order;
 		}
 
-		return this.deliveryRepository.findAll(filter, pagination);
+		const result = await this.deliveryRepository.findAll(filter, pagination);
+
+		return {
+			...result,
+			items: result.items.map(withoutProofPath),
+		};
 	}
 
 	async uploadProof(id, file) {
@@ -57,7 +78,7 @@ export class DeliveryService {
 			const proofMetadata = {
 				originalName: file.originalname,
 				filename: file.filename,
-				path: file.path,
+				path: getRelativeUploadPath(file.path),
 				mimetype: file.mimetype,
 				size: file.size,
 				documentType: DOCUMENT_TYPES.DELIVERY_PROOF,
@@ -79,7 +100,7 @@ export class DeliveryService {
 				size: file.size,
 			});
 
-			return updatedDelivery;
+			return withoutProofPath(updatedDelivery);
 		} catch (error) {
 			try {
 				await unlink(file.path);

@@ -8,14 +8,35 @@ import { OrderModel } from "../src/models/order.model.js";
 import { DeliveryModel } from "../src/models/delivery.model.js";
 
 describe("Mocks API", () => {
+	let existingIds;
+
 	before(async () => {
 		await connectDB();
 	});
 
+	beforeEach(async () => {
+		existingIds = {
+			users: new Set((await UserModel.distinct("_id")).map(String)),
+			orders: new Set((await OrderModel.distinct("_id")).map(String)),
+			deliveries: new Set((await DeliveryModel.distinct("_id")).map(String)),
+		};
+	});
+
 	afterEach(async () => {
-		await DeliveryModel.deleteMany({});
-		await OrderModel.deleteMany({});
-		await UserModel.deleteMany({});
+		const removeNewRecords = async (model, originalIds) => {
+			const currentIds = await model.distinct("_id");
+			const createdIds = currentIds.filter(
+				(id) => !originalIds.has(id.toString()),
+			);
+
+			if (createdIds.length > 0) {
+				await model.deleteMany({ _id: { $in: createdIds } });
+			}
+		};
+
+		await removeNewRecords(DeliveryModel, existingIds.deliveries);
+		await removeNewRecords(OrderModel, existingIds.orders);
+		await removeNewRecords(UserModel, existingIds.users);
 	});
 
 	after(async () => {
