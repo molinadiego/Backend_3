@@ -32,6 +32,12 @@ describe("Mocks API", () => {
 			if (createdIds.length > 0) {
 				await model.deleteMany({ _id: { $in: createdIds } });
 			}
+
+			const remainingOriginalCount = await model.countDocuments({
+				_id: { $in: [...originalIds] },
+			});
+
+			expect(remainingOriginalCount).to.equal(originalIds.size);
 		};
 
 		await removeNewRecords(DeliveryModel, existingIds.deliveries);

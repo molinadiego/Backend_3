@@ -759,7 +759,7 @@ El archivo `.env` contiene información sensible y **no debe subirse al reposito
 
 `API_BASE_URL` define la URL base publicada por Swagger y OpenAPI. Su valor por defecto es `http://localhost:8080`. La configuración también requiere `JWT_SECRET`, pero actualmente no hay un flujo JWT implementado que lo utilice.
 
-Cuando `NODE_ENV=test`, `src/config/env.config.js` carga las variables desde `.env.test`. Ese archivo debe contener las variables obligatorias, incluida una URI de MongoDB destinada exclusivamente a pruebas.
+Cuando `NODE_ENV=test`, `src/config/env.config.js` carga las variables desde `.env.test`. Ese archivo debe contener las variables obligatorias, incluida una URI de MongoDB destinada exclusivamente a pruebas y diferente de la base de desarrollo. Nunca ejecutes pruebas contra datos reales ni contra la base de desarrollo.
 
 Para configurar el entorno de pruebas, copiá la plantilla y verificá que la base indicada sea exclusiva de testing:
 
@@ -841,7 +841,7 @@ La suite utiliza Mocha, Chai y Supertest. Para ejecutarla:
 npm test
 ```
 
-El script configura `NODE_ENV=test` y carga `.env.test`. Las pruebas cubren mocking, usuarios, productos, órdenes, uploads y paginación, incluido el listado de entregas. Las pruebas de integración requieren una base de datos de prueba segura y accesible; no uses una base con datos reales.
+El script usa `cross-env` para configurar `NODE_ENV=test` y carga `.env.test`. Antes de ejecutarlo, copiá `.env.test.example` a `.env.test` y confirmá que `MONGODB_URI` apunte a `shipnow_test` o a otra base exclusiva, distinta de desarrollo. Nunca ejecutes pruebas contra datos reales ni contra la base de desarrollo.
 
 `cross-env` está declarado en `devDependencies` y `npm install` lo instala junto con las dependencias de desarrollo. Si se instala omitiendo devDependencies, `npm test` no tendrá disponible ese binario.
 

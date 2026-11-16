@@ -221,6 +221,11 @@ describe("Uploads API", () => {
 		expect(path.isAbsolute(storedDelivery.proof.path)).to.equal(false);
 		expect(storedDelivery.proof.path).to.match(/^uploads\/proofs\//);
 
+		const deliveryResponse = await request(app).get(
+			`/api/deliveries/${delivery._id}`,
+		);
+		expect(deliveryResponse.body.payload.proof.path).to.not.exist;
+
 		const deliveriesResponse = await request(app).get("/api/deliveries");
 		const listedDelivery = deliveriesResponse.body.payload.find(
 			(item) => item._id === delivery._id.toString(),
