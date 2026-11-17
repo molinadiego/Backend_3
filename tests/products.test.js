@@ -218,4 +218,77 @@ describe("Products API", () => {
 		expect(response.body.error).to.equal("PRODUCT_NOT_FOUND");
 		expect(response.body.message).to.equal("No se encontró el producto.");
 	});
+
+	it("debería actualizar los datos generales de un producto", async () => {
+		const createResponse = await request(app).post("/api/products").send({
+			name: "Producto Test",
+			price: 100,
+			stock: 10,
+		});
+		const response = await request(app)
+			.put(`/api/products/${createResponse.body.data._id}`)
+			.send({ name: "Producto Test actualizado", price: 125, stock: 0 });
+
+		expect(response.status).to.equal(200);
+		expect(response.body.status).to.equal("success");
+		expect(response.body.data.name).to.equal("Producto Test actualizado");
+		expect(response.body.data.price).to.equal(125);
+		expect(response.body.data.stock).to.equal(0);
+		expect(response.body.data.status).to.equal(PRODUCT_STATUS.OUT_OF_STOCK);
+	});
+
+	it("debería validar los datos generales y rechazar campos controlados del producto", async () => {
+		const createResponse = await request(app).post("/api/products").send({
+			name: "Producto Test",
+			price: 100,
+			stock: 10,
+		});
+		const id = createResponse.body.data._id;
+		const invalidPrice = await request(app)
+			.put(`/api/products/${id}`)
+			.send({ price: -1 });
+		const invalidName = await request(app)
+			.put(`/api/products/${id}`)
+			.send({ name: " " });
+		const protectedStatus = await request(app)
+			.put(`/api/products/${id}`)
+			.send({ status: PRODUCT_STATUS.OUT_OF_STOCK });
+
+		for (const response of [invalidPrice, invalidName, protectedStatus]) {
+			expect(response.status).to.equal(400);
+			expect(response.body.error).to.equal("VALIDATION_ERROR");
+		}
+	});
+
+	it("debería eliminar lógicamente un producto y devolverlo como inexistente", async () => {
+		const createResponse = await request(app).post("/api/products").send({
+			name: "Producto Test",
+			price: 100,
+			stock: 10,
+		});
+		const id = createResponse.body.data._id;
+		const response = await request(app).delete(`/api/products/${id}`);
+
+		expect(response.status).to.equal(200);
+		expect(response.body.status).to.equal("success");
+		expect(response.body.data.isActive).to.equal(false);
+		expect((await ProductModel.findById(id)).isActive).to.equal(false);
+
+		const getResponse = await request(app).get(`/api/products/${id}`);
+		expect(getResponse.status).to.equal(404);
+		expect(getResponse.body.error).to.equal("PRODUCT_NOT_FOUND");
+	});
+
+	it("debería responder PRODUCT_NOT_FOUND al actualizar o eliminar un producto inexistente", async () => {
+		const id = "507f1f77bcf86cd799439011";
+		const updateResponse = await request(app)
+			.put(`/api/products/${id}`)
+			.send({ name: "Producto Test actualizado" });
+		const deleteResponse = await request(app).delete(`/api/products/${id}`);
+
+		expect(updateResponse.status).to.equal(404);
+		expect(updateResponse.body.error).to.equal("PRODUCT_NOT_FOUND");
+		expect(deleteResponse.status).to.equal(404);
+		expect(deleteResponse.body.error).to.equal("PRODUCT_NOT_FOUND");
+	});
 });

@@ -159,6 +159,121 @@
                     application/json:
                         schema:
                             $ref: "#/components/schemas/ErrorResponse"
+            "400":
+                description: Identificador no válido.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "500":
+                description: Error interno del servidor.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+        tags:
+            - Products
+        summary: Actualizar un producto
+        description: Actualiza los datos permitidos de un producto activo. El estado se recalcula si cambia el stock.
+        parameters:
+            - name: id
+              in: path
+              required: true
+              description: Identificador del producto.
+              schema:
+                  type: string
+                  pattern: '^[0-9a-fA-F]{24}$'
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        minProperties: 1
+                        properties:
+                            name:
+                                type: string
+                                example: "Mouse inalámbrico actualizado"
+                            price:
+                                type: number
+                                minimum: 0
+                                example: 29.99
+                            stock:
+                                type: number
+                                minimum: 0
+                                example: 15
+        responses:
+            "200":
+                description: Producto actualizado correctamente.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                status:
+                                    type: string
+                                    example: success
+                                data:
+                                    $ref: "#/components/schemas/Product"
+            "400":
+                description: Identificador o datos enviados no válidos.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "404":
+                description: Producto no encontrado.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "500":
+                description: Error interno del servidor.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+        tags:
+            - Products
+        summary: Eliminar un producto
+        description: Desactiva un producto mediante eliminación lógica.
+        parameters:
+            - name: id
+              in: path
+              required: true
+              description: Identificador del producto.
+              schema:
+                  type: string
+                  pattern: '^[0-9a-fA-F]{24}$'
+        responses:
+            "200":
+                description: Producto desactivado correctamente.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                status:
+                                    type: string
+                                    example: success
+                                data:
+                                    $ref: "#/components/schemas/Product"
+            "400":
+                description: Identificador no válido.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "404":
+                description: Producto no encontrado.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
             "500":
                 description: Error interno del servidor.
                 content:

@@ -61,6 +61,80 @@ export class ProductService {
 		return product;
 	}
 
+	async updateProduct(id, data) {
+		if (!data || typeof data !== "object" || Array.isArray(data)) {
+			throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
+		}
+
+		const allowedFields = ["name", "price", "stock"];
+		const fields = Object.keys(data);
+
+		if (
+			fields.length === 0 ||
+			fields.some((field) => !allowedFields.includes(field))
+		) {
+			throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
+		}
+
+		const updateData = Object.fromEntries(
+			fields.map((field) => [field, data[field]]),
+		);
+
+		if (
+			updateData.name !== undefined &&
+			(typeof updateData.name !== "string" || !updateData.name.trim())
+		) {
+			throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
+		}
+
+		if (
+			updateData.price !== undefined &&
+			(!Number.isFinite(updateData.price) || updateData.price < 0)
+		) {
+			throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
+		}
+
+		if (
+			updateData.stock !== undefined &&
+			(!Number.isFinite(updateData.stock) || updateData.stock < 0)
+		) {
+			throw new AppError(ERRORS_CODES.VALIDATION_ERROR);
+		}
+
+		if (updateData.stock !== undefined) {
+			updateData.status =
+				updateData.stock > 0
+					? PRODUCT_STATUS.AVAILABLE
+					: PRODUCT_STATUS.OUT_OF_STOCK;
+		}
+
+		const product = await this.productRepository.update(id, updateData);
+
+		if (!product) {
+			throw new AppError(ERRORS_CODES.PRODUCT_NOT_FOUND);
+		}
+
+		logger.info("Producto actualizado.", {
+			productId: product._id,
+		});
+
+		return product;
+	}
+
+	async deleteProduct(id) {
+		const product = await this.productRepository.softDelete(id);
+
+		if (!product) {
+			throw new AppError(ERRORS_CODES.PRODUCT_NOT_FOUND);
+		}
+
+		logger.info("Producto eliminado.", {
+			productId: product._id,
+		});
+
+		return product;
+	}
+
 	async getProducts(query = {}) {
 		const pagination = parsePagination(query);
 		const filter = {};
