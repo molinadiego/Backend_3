@@ -44,7 +44,11 @@ const productRepository = new ProductRepository(ProductModel);
 
 const userService = new UserService(userRepository);
 const orderService = new OrderService(orderRepository);
-const deliveryService = new DeliveryService(deliveryRepository);
+const deliveryService = new DeliveryService(
+	deliveryRepository,
+	orderRepository,
+	userRepository,
+);
 const productService = new ProductService(productRepository);
 const mocksService = new MocksService(
 	userRepository,

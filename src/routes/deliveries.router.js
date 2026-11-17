@@ -6,6 +6,11 @@ export const createDeliveriesRouter = (deliveryController) => {
 	const router = Router();
 
 	router.get("/", deliveryController.getAll);
+	router.post("/", deliveryController.create);
+	router.get("/:id/tracking", deliveryController.getTracking);
+	router.get("/:id", deliveryController.getById);
+	router.put("/:id", deliveryController.update);
+	router.delete("/:id", deliveryController.delete);
 
 	router.post(
 		"/:id/proof",

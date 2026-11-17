@@ -94,6 +94,71 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Crear una entrega
+      description: Crea una entrega asociada a un pedido activo y a un usuario activo con rol de repartidor.
+      tags:
+        - Deliveries
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - order
+                - deliveryPerson
+                - address
+              properties:
+                order:
+                  type: string
+                  pattern: '^[0-9a-fA-F]{24}$'
+                  example: "507f1f77bcf86cd799439012"
+                deliveryPerson:
+                  type: string
+                  pattern: '^[0-9a-fA-F]{24}$'
+                  example: "507f1f77bcf86cd799439014"
+                address:
+                  type: string
+                  example: "Av. Siempre Viva 123"
+                status:
+                  type: string
+                  enum: [pending, assigned, in_transit, delivered, cancelled]
+                  default: pending
+                estimatedDeliveryDate:
+                  type: string
+                  format: date-time
+      responses:
+        "201":
+          description: Entrega creada correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  payload:
+                    $ref: "#/components/schemas/Delivery"
+        "400":
+          description: Datos inválidos, ID inválido, estado no válido o fecha estimada no válida.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Pedido no encontrado o repartidor no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /api/users/{id}/documents:
     post:
@@ -102,7 +167,7 @@ paths:
         Carga un documento asociado a un usuario existente.
         Los tipos admitidos son user_document y driver_license.
         Las licencias de conducir solo pueden asociarse a usuarios con rol driver.
-        Se aceptan PDF, JPEG, PNG y WebP de hasta 5 MB.
+        Se recibe un archivo por solicitud. Se aceptan PDF, JPEG, PNG y WebP de hasta 5 MB.
       tags:
         - Users
       parameters:
@@ -135,6 +200,20 @@ paths:
       responses:
         "200":
           description: Documento cargado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - data
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                  data:
+                    $ref: "#/components/schemas/User"
         "400":
           description: |
             Archivo faltante, tipo de archivo inválido, tamaño excedido,
@@ -156,12 +235,124 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/deliveries/{id}/tracking:
+    get:
+      summary: Consultar el seguimiento actual de una entrega
+      description: Devuelve el estado actual y datos relacionados de una entrega activa. No incluye historial de eventos ni ubicación.
+      tags:
+        - Deliveries
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      responses:
+        "200":
+          description: Estado actual de la entrega obtenido correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - payload
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  payload:
+                    type: object
+                    required:
+                      - deliveryId
+                      - order
+                      - status
+                      - deliveryPerson
+                      - address
+                      - estimatedDeliveryDate
+                      - updatedAt
+                    properties:
+                      deliveryId:
+                        type: string
+                        example: "507f1f77bcf86cd799439013"
+                      order:
+                        type: object
+                        nullable: true
+                        properties:
+                          id:
+                            type: string
+                            example: "507f1f77bcf86cd799439012"
+                          deliveryAddress:
+                            type: string
+                            example: "Av. Siempre Viva 123"
+                          total:
+                            type: number
+                            example: 125.5
+                          status:
+                            type: string
+                            example: created
+                          priority:
+                            type: string
+                            example: normal
+                      status:
+                        type: string
+                        enum: [pending, assigned, in_transit, delivered, cancelled]
+                        example: in_transit
+                      deliveryPerson:
+                        type: object
+                        nullable: true
+                        properties:
+                          id:
+                            type: string
+                            example: "507f1f77bcf86cd799439014"
+                          name:
+                            type: string
+                            example: "María Pérez"
+                          email:
+                            type: string
+                            format: email
+                            example: "maria@example.com"
+                          role:
+                            type: string
+                            enum: [driver]
+                            example: driver
+                      address:
+                        type: string
+                        example: "Av. Siempre Viva 123"
+                      estimatedDeliveryDate:
+                        type: string
+                        format: date-time
+                        nullable: true
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        nullable: true
+        "400":
+          description: Identificador no válido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Entrega no encontrada o inactiva.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/deliveries/{id}/proof:
     post:
       summary: Cargar un comprobante de entrega
       description: |
         Carga un comprobante asociado a una entrega existente.
-        Se admiten PDF, JPEG, PNG y WebP de hasta 5 MB.
+        Se recibe un archivo por solicitud. Se admiten PDF, JPEG, PNG y WebP de hasta 5 MB.
       tags:
         - Deliveries
       parameters:
@@ -187,6 +378,20 @@ paths:
       responses:
         "200":
           description: Comprobante cargado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - payload
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                  payload:
+                    $ref: "#/components/schemas/Delivery"
         "400":
           description: Archivo faltante, tipo inválido, tamaño excedido o campo incorrecto
           content:
@@ -201,6 +406,159 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "500":
           description: Error al guardar el comprobante
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/deliveries/{id}:
+    get:
+      summary: Obtener una entrega por ID
+      description: Obtiene una entrega activa con sus referencias de pedido y repartidor pobladas.
+      tags:
+        - Deliveries
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      responses:
+        "200":
+          description: Entrega obtenida correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  payload:
+                    $ref: "#/components/schemas/Delivery"
+        "400":
+          description: Identificador no válido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Entrega no encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      summary: Actualizar una entrega
+      description: Actualiza parcialmente los campos logísticos permitidos. proof e isActive no se modifican mediante esta ruta.
+      tags:
+        - Deliveries
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                order:
+                  type: string
+                  pattern: '^[0-9a-fA-F]{24}$'
+                deliveryPerson:
+                  type: string
+                  pattern: '^[0-9a-fA-F]{24}$'
+                address:
+                  type: string
+                status:
+                  type: string
+                  enum: [pending, assigned, in_transit, delivered, cancelled]
+                estimatedDeliveryDate:
+                  type: string
+                  format: date-time
+      responses:
+        "200":
+          description: Entrega actualizada correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  payload:
+                    $ref: "#/components/schemas/Delivery"
+        "400":
+          description: Datos inválidos, identificador, referencia, estado o fecha estimada no válidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Entrega, pedido o repartidor no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Eliminar una entrega
+      description: Desactiva una entrega mediante eliminación lógica.
+      tags:
+        - Deliveries
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      responses:
+        "200":
+          description: Entrega desactivada correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  payload:
+                    $ref: "#/components/schemas/Delivery"
+        "400":
+          description: Identificador no válido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Entrega no encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor.
           content:
             application/json:
               schema:
