@@ -160,6 +160,12 @@
                     application/json:
                         schema:
                             $ref: "#/components/schemas/ErrorResponse"
+            "400":
+                description: Identificador no válido.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
             "500":
                 description: Error interno del servidor.
                 content:
@@ -256,14 +262,16 @@
                 content:
                     application/json:
                         schema:
-                            type: object
-                            properties:
-                                status:
-                                    type: string
-                                    example: success
-                                message:
-                                    type: string
-                                    example: "Usuario eliminado correctamente"
+                            $ref: "#/components/schemas/SuccessResponse"
+                        example:
+                            status: success
+                            message: "Usuario eliminado correctamente."
+            "400":
+                description: Identificador no válido.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
             "404":
                 description: Usuario no encontrado.
                 content:

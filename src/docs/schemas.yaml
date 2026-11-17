@@ -35,6 +35,28 @@ components:
                     items:
                         $ref: "#/components/schemas/UserDocument"
 
+        UserSummary:
+            type: object
+            properties:
+                _id:
+                    type: string
+                    example: "507f1f77bcf86cd799439011"
+                name:
+                    type: string
+                    example: "Juan Pérez"
+                email:
+                    type: string
+                    format: email
+                    example: "juan@example.com"
+                role:
+                    type: string
+                    enum:
+                        - admin
+                        - customer
+                        - driver
+                        - store
+                    example: driver
+
         UserDocument:
             type: object
             required:
@@ -119,18 +141,7 @@ components:
                     oneOf:
                         - type: string
                           example: "507f1f77bcf86cd799439011"
-                        - type: object
-                          properties:
-                              _id:
-                                  type: string
-                                  example: "507f1f77bcf86cd799439011"
-                              name:
-                                  type: string
-                                  example: "Juan Pérez"
-                              email:
-                                  type: string
-                                  format: email
-                                  example: "juan@example.com"
+                        - $ref: "#/components/schemas/UserSummary"
                 deliveryAddress:
                     type: string
                     example: "Av. Siempre Viva 123"
@@ -172,11 +183,19 @@ components:
                     type: string
                     example: "507f1f77bcf86cd799439013"
                 order:
-                    type: string
-                    example: "507f1f77bcf86cd799439012"
+                    description: Puede estar poblado o ser null si la referencia no existe.
+                    oneOf:
+                        - type: string
+                          example: "507f1f77bcf86cd799439012"
+                        - $ref: "#/components/schemas/Order"
+                    nullable: true
                 deliveryPerson:
-                    type: string
-                    example: "507f1f77bcf86cd799439014"
+                    description: Puede estar poblado o ser null si la referencia no existe.
+                    oneOf:
+                        - type: string
+                          example: "507f1f77bcf86cd799439014"
+                        - $ref: "#/components/schemas/UserSummary"
+                    nullable: true
                 status:
                     type: string
                     enum:
@@ -250,13 +269,52 @@ components:
                 message:
                     type: string
                     example: "No se encontró el usuario solicitado."
+                details:
+                    oneOf:
+                        - type: string
+                        - type: object
+                    description: Información adicional incluida en desarrollo cuando existe.
 
         SuccessResponse:
             type: object
+            required:
+                - status
+                - message
             properties:
                 status:
                     type: string
+                    enum:
+                        - success
                     example: success
                 message:
                     type: string
                     example: "Operación realizada correctamente."
+
+        HealthResponse:
+            type: object
+            required:
+                - status
+                - environment
+                - uptime
+                - timestamp
+            properties:
+                status:
+                    type: string
+                    enum:
+                        - ok
+                        - error
+                    example: ok
+                environment:
+                    type: string
+                    enum:
+                        - development
+                        - test
+                        - production
+                    example: production
+                uptime:
+                    type: number
+                    minimum: 0
+                    example: 3600.25
+                timestamp:
+                    type: string
+                    format: date-time

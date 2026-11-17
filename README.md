@@ -410,6 +410,8 @@ POST /api/mocks/seed
 
 permite generar e insertar datos controlados directamente en MongoDB. Usalo únicamente contra una base de pruebas controlada; no lo ejecutes contra una base con datos reales.
 
+Este endpoint está disponible en los entornos `development` y `test`. En `production` responde `404` y no ejecuta la carga de datos.
+
 Los parámetros disponibles son:
 
 | Parámetro         | Descripción                  | Valor por defecto |
@@ -759,15 +761,15 @@ El archivo `.env` contiene información sensible y **no debe subirse al reposito
 
 `API_BASE_URL` define la URL base publicada por Swagger y OpenAPI. Su valor por defecto es `http://localhost:8080`. La configuración también requiere `JWT_SECRET`, pero actualmente no hay un flujo JWT implementado que lo utilice.
 
-Cuando `NODE_ENV=test`, `src/config/env.config.js` carga las variables desde `.env.test`. Ese archivo debe contener las variables obligatorias, incluida una URI de MongoDB destinada exclusivamente a pruebas y diferente de la base de desarrollo. Nunca ejecutes pruebas contra datos reales ni contra la base de desarrollo.
+Cuando `NODE_ENV=test`, `src/config/env.config.js` carga las variables desde `.env.test`. Ese archivo debe contener las variables obligatorias, incluida una URI de MongoDB destinada exclusivamente a pruebas.
 
-Para configurar el entorno de pruebas, copiá la plantilla y verificá que la base indicada sea exclusiva de testing:
+Para configurar el entorno de tests, copiá la plantilla y verificá que la base indicada sea exclusiva de testing:
 
 ```bash
 cp .env.test.example .env.test
 ```
 
-La plantilla usa `mongodb://127.0.0.1:27017/shipnow_test`; si usás otra instancia, configurá `MONGODB_URI` con una base aislada para pruebas. No apuntes `.env.test` a desarrollo ni a producción. `.env.test` está ignorado por Git y no debe subirse al repositorio.
+La plantilla usa `mongodb://127.0.0.1:27017/shipnow_test`; si usás otra instancia, cambiá `MONGODB_URI` por una base aislada para pruebas. No apuntes `.env.test` a desarrollo ni a producción. `.env.test` está ignorado por Git y no debe subirse al repositorio.
 
 Para facilitar la configuración se incluye:
 
@@ -841,11 +843,9 @@ La suite utiliza Mocha, Chai y Supertest. Para ejecutarla:
 npm test
 ```
 
-El script usa `cross-env` para configurar `NODE_ENV=test` y carga `.env.test`. Antes de ejecutarlo, copiá `.env.test.example` a `.env.test` y confirmá que `MONGODB_URI` apunte a `shipnow_test` o a otra base exclusiva, distinta de desarrollo. Nunca ejecutes pruebas contra datos reales ni contra la base de desarrollo.
+El script usa `cross-env` (incluido en `devDependencies`), configura `NODE_ENV=test` y carga `.env.test`. Antes de ejecutarlo, copiá `.env.test.example` a `.env.test` y confirmá que `MONGODB_URI` apunte a una base exclusiva de tests. La suite cubre mocking, usuarios, productos, órdenes, CRUD y consulta de tracking de entregas, uploads y paginación. No uses una base con datos reales.
 
-`cross-env` está declarado en `devDependencies` y `npm install` lo instala junto con las dependencias de desarrollo. Si se instala omitiendo devDependencies, `npm test` no tendrá disponible ese binario.
-
-En la última ejecución verificada, `npm test` finalizó con **81 tests aprobados y 0 fallidos**.
+En la última ejecución verificada, `npm test` finalizó con **106 tests aprobados y 0 fallidos**.
 
 ---
 
@@ -856,17 +856,25 @@ Las rutas principales disponibles son:
 | Recurso | Operaciones |
 | --- | --- |
 | Usuarios (`/api/users`) | `GET /`, `POST /`, `GET /:id`, `PUT /:id`, `DELETE /:id`, `POST /:id/documents` |
-| Productos (`/api/products`) | `GET /`, `GET /:id`, `POST /`, `PATCH /:id/stock` |
+| Productos (`/api/products`) | `GET /`, `GET /:id`, `POST /`, `PUT /:id`, `DELETE /:id`, `PATCH /:id/stock` |
 | Órdenes (`/api/orders`) | `GET /`, `POST /`, `GET /:id`, `PUT /:id`, `DELETE /:id` |
-| Entregas (`/api/deliveries`) | `GET /`, `POST /:id/proof` |
+| Entregas (`/api/deliveries`) | `GET /`, `POST /`, `GET /:id`, `PUT /:id`, `DELETE /:id`, `GET /:id/tracking`, `POST /:id/proof` |
 
 Los listados de usuarios, productos, órdenes y entregas aceptan `page` y `limit` (por defecto `1` y `10`; `limit` se limita a `100`). También aceptan filtros propios del recurso: `role`, `status`, `priority`, `userId`, `deliveryPerson` u `order`, según corresponda. Los filtros disponibles se detallan en `/api/docs`.
 
 Rutas adicionales:
 
 - `GET /health`: informa si Mongoose tiene conexión establecida.
-- `GET /api/logger/loggerTest`: genera registros de prueba en distintos niveles del logger.
+- `GET /api/logger/loggerTest`: genera registros de prueba en distintos niveles del logger. Está disponible en `development` y `test`; en `production` responde `404` sin generar registros.
 - `/api/docs`: interfaz Swagger / OpenAPI. En local, abrí `http://localhost:8080/api/docs`; la URL base que muestra la documentación depende de `API_BASE_URL`.
+
+## Logs
+
+Winston escribe los registros en estos archivos:
+
+- `log/error.log`: eventos de niveles `error` y `fatal`.
+- `log/combined.log`: actividad general, incluidos los niveles HTTP y debug.
+- Consola: únicamente en desarrollo.
 
 La API no cuenta actualmente con autenticación ni autorización. No expongas públicamente las rutas de modificación hasta incorporar controles de acceso.
 
@@ -1103,10 +1111,45 @@ Los mismos formatos, límite de un archivo y máximo de 5 MB aplican a documento
 
 ShipNow puede ejecutarse en un contenedor Docker utilizando una imagen basada en Node.js 22.
 
+## Docker Compose con MongoDB
+
+El archivo `docker-compose.yml` define una API y un servicio MongoDB en una red privada de Compose. MongoDB no publica su puerto en el equipo anfitrión; la API espera a que su health check responda correctamente antes de iniciar. Compose configura explícitamente `NODE_ENV=production`, independientemente del valor de `NODE_ENV` en `.env`; por eso los endpoints internos están deshabilitados en este servicio. Esto no cambia `npm run dev`, que permite ejecutar el servidor local con `NODE_ENV=development`. Los datos de MongoDB se conservan en el volumen nombrado `mongodb_data`; `docker compose down` no elimina ese volumen.
+
+Configurar en `.env` un `JWT_SECRET` no vacío. `MONGO_DATABASE` es opcional y por defecto utiliza `shipnow`. Compose configura `MONGODB_URI` hacia el servicio MongoDB local y no usa para la API el `MONGODB_URI` que figure en `.env`. No guardar credenciales reales en el repositorio.
+
+Construir e iniciar ambos servicios:
+
+```bash
+docker compose up -d --build
+```
+
+Consultar el estado de los servicios:
+
+```bash
+docker compose ps
+```
+
+Verificar la API y el estado del health check del contenedor:
+
+```bash
+curl -i http://localhost:8080/health
+docker inspect --format '{{.State.Health.Status}}' "$(docker compose ps -q api)"
+```
+
+Con la configuración predeterminada, `PORT=8080` y Compose publica `127.0.0.1:8080` hacia el puerto `8080` del contenedor. Si se cambia `PORT`, el puerto de destino y el publicado deben coincidir; también hay que ajustar `API_BASE_URL`, por ejemplo `http://localhost:8081` cuando `PORT=8081`.
+
+Para detener los contenedores sin eliminar los datos persistidos:
+
+```bash
+docker compose down
+```
+
+El servicio MongoDB de Compose no requiere Atlas. Esta configuración se limita a localhost: la API todavía no tiene autenticación ni autorización y no debe exponerse públicamente.
+
 ## Requisitos previos
 
 - Docker Desktop instalado y en ejecución.
-- Acceso a MongoDB Atlas.
+- Acceso a MongoDB Atlas para ejecutar la imagen por separado; Docker Compose inicia MongoDB local.
 - Un archivo `.env` correctamente configurado.
 
 No es necesario instalar Node.js en el equipo anfitrión para ejecutar la API dentro del contenedor.
@@ -1202,6 +1245,23 @@ curl -i http://localhost:8080/api/products
 ```
 
 ## Consultar los logs
+
+Winston escribe en archivos que Compose conserva en el volumen `shipnow_logs`. Para leerlos desde el servicio API:
+
+```bash
+docker compose exec -T api sh -c 'tail -n 50 /app/log/error.log'
+docker compose exec -T api sh -c 'tail -n 50 /app/log/combined.log'
+```
+
+Para seguir el archivo combinado en tiempo real:
+
+```bash
+docker compose exec -T api sh -c 'tail -f /app/log/combined.log'
+```
+
+`docker logs` muestra únicamente stdout/stderr del contenedor; no lee los archivos Winston del volumen `shipnow_logs`. Winston usa consola solo en desarrollo, por lo que en el Compose de producción no se debe esperar que `docker logs` muestre esos registros.
+
+Consultar stdout/stderr del contenedor:
 
 Ver los últimos mensajes:
 
