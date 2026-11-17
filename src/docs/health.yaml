@@ -1,0 +1,29 @@
+/health:
+    get:
+        tags:
+            - Health
+        summary: Consultar el estado de la aplicación y MongoDB
+        description: Informa el estado de la conexión de Mongoose, el entorno y el tiempo de actividad.
+        responses:
+            "200":
+                description: Mongoose informa una conexión establecida.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/HealthResponse"
+                        example:
+                            status: ok
+                            environment: production
+                            uptime: 3600.25
+                            timestamp: "2026-10-10T18:00:00.000Z"
+            "503":
+                description: Mongoose informa que no hay una conexión establecida.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/HealthResponse"
+                        example:
+                            status: error
+                            environment: production
+                            uptime: 3600.25
+                            timestamp: "2026-10-10T18:00:00.000Z"

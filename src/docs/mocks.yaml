@@ -3,17 +3,18 @@
         tags:
             - Mocks
         summary: Generar usuarios de prueba
-        description: Genera usuarios ficticios en memoria sin almacenarlos en MongoDB. La cantidad debe ser un entero positivo. El valor por defecto es 5. Si la cantidad supera el límite de 50, se utiliza 50.
+        description: Genera usuarios ficticios en memoria sin almacenarlos en MongoDB. La cantidad debe ser un entero entre 1 y 50; valores mayores se rechazan con INVALID_MOCK_AMOUNT. El valor por defecto es 5.
         parameters:
             - name: qty
               in: query
               required: false
               description: Cantidad de usuarios a generar.
               schema:
-                  type: integer
-                  minimum: 1
-                  default: 5
-                  example: 3
+                   type: integer
+                   minimum: 1
+                   maximum: 50
+                   default: 5
+                   example: 3
         responses:
             "200":
                 description: Usuarios generados correctamente.
@@ -47,17 +48,18 @@
         tags:
             - Mocks
         summary: Generar repartidores de prueba
-        description: Genera usuarios ficticios con rol de repartidor en memoria sin almacenarlos en MongoDB. La cantidad debe ser un entero positivo. El valor por defecto es 5. Si la cantidad supera el límite de 50, se utiliza 50.
+        description: Genera usuarios ficticios con rol de repartidor en memoria sin almacenarlos en MongoDB. La cantidad debe ser un entero entre 1 y 50; valores mayores se rechazan con INVALID_MOCK_AMOUNT. El valor por defecto es 5.
         parameters:
             - name: qty
               in: query
               required: false
               description: Cantidad de repartidores a generar.
               schema:
-                  type: integer
-                  minimum: 1
-                  default: 5
-                  example: 2
+                    type: integer
+                    minimum: 1
+                    maximum: 50
+                    default: 5
+                    example: 2
         responses:
             "200":
                 description: Repartidores generados correctamente.
@@ -91,17 +93,18 @@
         tags:
             - Mocks
         summary: Generar pedidos de prueba
-        description: Genera usuarios y pedidos ficticios relacionados en memoria sin almacenarlos en MongoDB. La cantidad debe ser un entero positivo. El valor por defecto es 5. Si la cantidad supera el límite de 50, se utiliza 50.
+        description: Genera usuarios y pedidos ficticios relacionados en memoria sin almacenarlos en MongoDB. La cantidad debe ser un entero entre 1 y 50; valores mayores se rechazan con INVALID_MOCK_AMOUNT. El valor por defecto es 5.
         parameters:
             - name: qty
               in: query
               required: false
               description: Cantidad de pedidos a generar.
               schema:
-                  type: integer
-                  minimum: 1
-                  default: 5
-                  example: 3
+                    type: integer
+                    minimum: 1
+                    maximum: 50
+                    default: 5
+                    example: 3
         responses:
             "200":
                 description: Pedidos generados correctamente.
@@ -135,17 +138,18 @@
         tags:
             - Mocks
         summary: Generar entregas de prueba
-        description: Genera entregas ficticias relacionadas con pedidos y repartidores en memoria sin almacenarlas en MongoDB. La cantidad debe ser un entero positivo. El valor por defecto es 5. Si la cantidad supera el límite de 50, se utiliza 50.
+        description: Genera entregas ficticias relacionadas con pedidos y repartidores en memoria sin almacenarlas en MongoDB. La cantidad debe ser un entero entre 1 y 50; valores mayores se rechazan con INVALID_MOCK_AMOUNT. El valor por defecto es 5.
         parameters:
             - name: qty
               in: query
               required: false
               description: Cantidad de entregas a generar.
               schema:
-                  type: integer
-                  minimum: 1
-                  default: 5
-                  example: 2
+                    type: integer
+                    minimum: 1
+                    maximum: 50
+                    default: 5
+                    example: 2
         responses:
             "200":
                 description: Entregas generadas correctamente.
@@ -179,44 +183,48 @@
         tags:
             - Mocks
         summary: Insertar datos de prueba
-        description: Genera e inserta usuarios, repartidores, pedidos y entregas de prueba en MongoDB. Las cantidades pueden enviarse mediante query parameters o mediante el body en formato JSON. Si se envía un mismo parámetro por ambos medios, se utiliza el valor recibido por query. El valor máximo procesado por cada cantidad es 50.
+        description: Disponible en los entornos development y test. En production, el middleware responde 404 y no ejecuta la carga de datos. En los entornos habilitados, genera e inserta usuarios, repartidores, pedidos y entregas de prueba en MongoDB. Úsalo únicamente con una base de pruebas controlada. Las cantidades pueden enviarse mediante query parameters o mediante el body en formato JSON; si se envía el mismo parámetro por ambos medios, prevalece query. Cada cantidad debe ser un entero entre 0 y 50; los valores mayores se rechazan con INVALID_MOCK_AMOUNT.
         parameters:
             - name: users
               in: query
               required: false
               description: Cantidad de usuarios clientes a insertar. Por defecto 5.
               schema:
-                  type: integer
-                  minimum: 0
-                  default: 5
-                  example: 2
+                    type: integer
+                    minimum: 0
+                    maximum: 50
+                    default: 5
+                    example: 2
             - name: deliveryPersons
               in: query
               required: false
               description: Cantidad de repartidores a insertar. Por defecto 3.
               schema:
-                  type: integer
-                  minimum: 0
-                  default: 3
-                  example: 1
+                    type: integer
+                    minimum: 0
+                    maximum: 50
+                    default: 3
+                    example: 1
             - name: orders
               in: query
               required: false
               description: Cantidad de pedidos a insertar. Por defecto 10.
               schema:
-                  type: integer
-                  minimum: 0
-                  default: 10
-                  example: 2
+                    type: integer
+                    minimum: 0
+                    maximum: 50
+                    default: 10
+                    example: 2
             - name: deliveries
               in: query
               required: false
               description: Cantidad de entregas a insertar. Por defecto 5.
               schema:
-                  type: integer
-                  minimum: 0
-                  default: 5
-                  example: 1
+                    type: integer
+                    minimum: 0
+                    maximum: 50
+                    default: 5
+                    example: 1
         requestBody:
             required: false
             content:
@@ -227,18 +235,22 @@
                             users:
                                 type: integer
                                 minimum: 0
+                                maximum: 50
                                 example: 2
                             deliveryPersons:
                                 type: integer
                                 minimum: 0
+                                maximum: 50
                                 example: 1
                             orders:
                                 type: integer
                                 minimum: 0
+                                maximum: 50
                                 example: 2
                             deliveries:
                                 type: integer
                                 minimum: 0
+                                maximum: 50
                                 example: 1
 
         responses:
@@ -269,6 +281,12 @@
                                             example: 1
             "400":
                 description: Cantidad inválida o combinación de cantidades que no permite establecer las relaciones requeridas.
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ErrorResponse"
+            "404":
+                description: Ruta no encontrada cuando NODE_ENV es production; el controller no se ejecuta.
                 content:
                     application/json:
                         schema:

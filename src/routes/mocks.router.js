@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { internalEndpointsMiddleware } from "../middlewares/internal-endpoints.middleware.js";
 
 export const createMocksRouter = (mocksController) => {
     const router = Router();
@@ -11,7 +12,7 @@ export const createMocksRouter = (mocksController) => {
 
     router.get("/deliveries", mocksController.generateDeliveries);
 
-    router.post("/seed", mocksController.seed);
+    router.post("/seed", internalEndpointsMiddleware, mocksController.seed);
 
     return router;
 };
