@@ -192,6 +192,33 @@ describe("Orders API", () => {
 		expect(response.body.payload.priority).to.equal("high");
 	});
 
+	it("debería eliminar una orden correctamente", async () => {
+		const order = await createTestOrder();
+
+		const response = await request(app).delete(`/api/orders/${order._id}`);
+
+		expect(response.status).to.equal(200);
+		expect(response.body.status).to.equal("success");
+		expect(response.body.payload).to.be.an("object");
+		expect(response.body.payload._id).to.equal(order._id);
+		expect(response.body.payload.isActive).to.equal(false);
+		const storedOrder = await OrderModel.findById(order._id);
+		expect(storedOrder.isActive).to.equal(false);
+	});
+
+	it("debería responder ORDER_NOT_FOUND al eliminar una orden inexistente", async () => {
+		const response = await request(app).delete(
+			"/api/orders/507f1f77bcf86cd799439011",
+		);
+
+		expect(response.status).to.equal(404);
+		expect(response.body.status).to.equal("error");
+		expect(response.body.error).to.equal("ORDER_NOT_FOUND");
+		expect(response.body.message).to.equal(
+			"No se encontró el pedido solicitado.",
+		);
+	});
+
 	it("debería responder un error de validación cuando el estado de la orden es inválido", async () => {
 		const order = await createTestOrder();
 
