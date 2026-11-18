@@ -30,6 +30,24 @@ if (!allowedEnvironments.includes(process.env.NODE_ENV)) {
 	);
 }
 
+const allowedLogLevels = [
+	"fatal",
+	"error",
+	"warning",
+	"info",
+	"http",
+	"debug",
+];
+const defaultLogLevel =
+	process.env.NODE_ENV === "production" ? "info" : "debug";
+const logLevel = (process.env.LOG_LEVEL || defaultLogLevel).trim().toLowerCase();
+
+if (!allowedLogLevels.includes(logLevel)) {
+	throw new Error(
+		`La variable LOG_LEVEL debe ser uno de: ${allowedLogLevels.join(", ")}.`,
+	);
+}
+
 const apiBaseUrl = (process.env.API_BASE_URL || "http://localhost:8080").trim();
 
 try {
@@ -53,5 +71,6 @@ export const config = Object.freeze({
 	mongoUri: process.env.MONGODB_URI,
 	jwtSecret: process.env.JWT_SECRET,
 	nodeEnv: process.env.NODE_ENV,
+	logLevel,
 	apiBaseUrl,
 });

@@ -39,7 +39,7 @@ const consoleFormat = winston.format.combine(
 );
 
 const consoleTransport = new winston.transports.Console({
-	level: "debug",
+	level: config.logLevel,
 	format: consoleFormat,
 });
 
@@ -63,7 +63,7 @@ if (config.nodeEnv === "development") {
 
 const logger = winston.createLogger({
 	levels: customLevels.levels,
-	level: "debug",
+	level: config.logLevel,
 	format: logFormat,
 	transports,
 });

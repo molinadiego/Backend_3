@@ -11,6 +11,21 @@ services:
       retries: 5
       start_period: 20s
 
+  mongodb-test:
+    image: mongo:8.0
+    profiles: [testing]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MONGO_TEST_PORT:-27017}:27017"
+    volumes:
+      - mongodb_test_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
   api:
     build:
       context: .
@@ -22,6 +37,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: ${PORT:-8080}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
       MONGODB_URI: mongodb://mongodb:27017/${MONGO_DATABASE:-shipnow}
       JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en .env o en el entorno}
       API_BASE_URL: ${API_BASE_URL:-http://localhost:8080}
@@ -33,5 +49,6 @@ services:
 
 volumes:
   mongodb_data:
+  mongodb_test_data:
   shipnow_logs:
   shipnow_uploads:

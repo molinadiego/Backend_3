@@ -840,12 +840,19 @@ PORT
 La suite utiliza Mocha, Chai y Supertest. Para ejecutarla:
 
 ```bash
+npm ci --include=dev
+cp .env.test.example .env.test
+docker compose --profile testing up -d mongodb-test
 npm test
 ```
 
-El script usa `cross-env` (incluido en `devDependencies`), configura `NODE_ENV=test` y carga `.env.test`. Antes de ejecutarlo, copiá `.env.test.example` a `.env.test` y confirmá que `MONGODB_URI` apunte a una base exclusiva de tests. La suite cubre mocking, usuarios, productos, órdenes, CRUD y consulta de tracking de entregas, uploads y paginación. No uses una base con datos reales.
+`npm test` usa `cross-env` (incluido en `devDependencies`), configura `NODE_ENV=test` y carga `.env.test`. La plantilla apunta a `mongodb://127.0.0.1:27017/shipnow_test`; el servicio opcional `mongodb-test` de Compose crea una instancia separada de desarrollo, enlazada solo a localhost y con su propio volumen persistente. Si el puerto 27017 ya está ocupado, definí `MONGO_TEST_PORT` y ajustá el puerto de `MONGODB_URI` en `.env.test`. La URI debe usar exclusivamente la base `shipnow_test`, nunca desarrollo ni datos reales. `.env.test` es un archivo local ignorado por Git; no lo publiques.
 
-En la última ejecución verificada, `npm test` finalizó con **106 tests aprobados y 0 fallidos**.
+`LOG_LEVEL` es opcional; se acepta `fatal`, `error`, `warning`, `info`, `http` o `debug`. Si se omite, usa `debug` en desarrollo/testing e `info` en producción.
+
+Al terminar, se puede detener la base de pruebas sin borrar sus datos con `docker compose --profile testing stop mongodb-test`. `npm ci --include=dev` instala las herramientas de test (cross-env, Mocha, Chai y Supertest).
+
+En la última ejecución verificada, `npm test` finalizó con **109 tests aprobados y 0 fallidos**.
 
 ---
 
@@ -1113,7 +1120,7 @@ ShipNow puede ejecutarse en un contenedor Docker utilizando una imagen basada en
 
 ## Docker Compose con MongoDB
 
-El archivo `docker-compose.yml` define una API y un servicio MongoDB en una red privada de Compose. MongoDB no publica su puerto en el equipo anfitrión; la API espera a que su health check responda correctamente antes de iniciar. Compose configura explícitamente `NODE_ENV=production`, independientemente del valor de `NODE_ENV` en `.env`; por eso los endpoints internos están deshabilitados en este servicio. Esto no cambia `npm run dev`, que permite ejecutar el servidor local con `NODE_ENV=development`. Los datos de MongoDB se conservan en el volumen nombrado `mongodb_data`; `docker compose down` no elimina ese volumen.
+El archivo `docker-compose.yml` define una API y un servicio MongoDB en una red privada de Compose. MongoDB no publica su puerto en el equipo anfitrión; la API espera a que su health check responda correctamente antes de iniciar. Compose configura explícitamente `NODE_ENV=production`, independientemente del valor de `NODE_ENV` en `.env`; por eso los endpoints internos están deshabilitados en este servicio. Esto no cambia `npm run dev`, que permite ejecutar el servidor local con `NODE_ENV=development`. Los datos de MongoDB se conservan en el volumen nombrado `mongodb_data`; `docker compose down` no elimina ese volumen. Para pruebas existe además el servicio opt-in `mongodb-test` bajo el perfil `testing`, aislado en el volumen `mongodb_test_data` y publicado solo en `127.0.0.1`.
 
 Configurar en `.env` un `JWT_SECRET` no vacío. `MONGO_DATABASE` es opcional y por defecto utiliza `shipnow`. Compose configura `MONGODB_URI` hacia el servicio MongoDB local y no usa para la API el `MONGODB_URI` que figure en `.env`. No guardar credenciales reales en el repositorio.
 
@@ -1179,10 +1186,11 @@ PORT=8080
 MONGODB_URI=
 JWT_SECRET=
 NODE_ENV=development
+LOG_LEVEL=debug
 API_BASE_URL=http://localhost:8080
 ```
 
-Completar `MONGODB_URI` y `JWT_SECRET` con los valores correspondientes. `JWT_SECRET` es requerido por la configuración actual, aunque no hay un flujo JWT implementado. No publicar el archivo `.env` ni incluir credenciales en el repositorio.
+Completar `MONGODB_URI` y `JWT_SECRET` con los valores correspondientes. `JWT_SECRET` es requerido por la configuración actual, aunque no hay un flujo JWT implementado. `LOG_LEVEL` admite `fatal`, `error`, `warning`, `info`, `http` o `debug`; por defecto es `info` en producción y `debug` en desarrollo/testing. No publicar el archivo `.env` ni incluir credenciales en el repositorio.
 
 Las variables se proporcionan al contenedor durante su ejecución, no se copian a la imagen.
 
